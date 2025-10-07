@@ -209,3 +209,4 @@ __marimo__/
 Test_Dataset/
 
 api/management
+.DS_Store
