@@ -8,11 +8,7 @@ from . import models, serializers
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
-    """
-    A viewset for viewing and editing Profile instances.
-    Provides `list`, `create`, `retrieve`, `update`, and `destroy` actions.
-    """
-    queryset = models.Profile.objects.all().order_by('name')
+    queryset = models.Profile.objects.all().order_by('entity_id')
     serializer_class = serializers.ProfileSerializer
     lookup_field = 'entity_id'
 
@@ -54,7 +50,6 @@ class ProfileDetailAPIView(generics.RetrieveAPIView):
 
 class TimelineAPIView(APIView):
     def get(self, request, entity_id):
-        # 1. First, efficiently check if the profile exists.
         if not models.Profile.objects.filter(entity_id=entity_id).exists():
             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -62,10 +57,8 @@ class TimelineAPIView(APIView):
         end = request.query_params.get("end")
         types = request.query_params.get("types")
 
-        # 2. Build the base queryset for Events, filtered by the entity.
         ev_qs = models.Event.objects.filter(entity__entity_id=entity_id)
 
-        # 3. Apply optional filters.
         if start:
             ev_qs = ev_qs.filter(timestamp__gte=start)
         if end:
@@ -75,7 +68,6 @@ class TimelineAPIView(APIView):
             if allowed:
                 ev_qs = ev_qs.filter(event_type__in=allowed)
 
-        # 4. Apply prefetching ON THE FINAL QUERYSET to solve the N+1 problem.
         ev_qs = ev_qs.prefetch_related(
             'entity',
             'wifi_logs',
@@ -86,7 +78,6 @@ class TimelineAPIView(APIView):
             'library_checkout',
         ).order_by("timestamp")
 
-        # 5. Serialize the entire queryset at once.
         serializer = serializers.TimelineEventSerializer(ev_qs, many=True)
         return Response(serializer.data)
 
@@ -129,7 +120,6 @@ class AlertsListAPIView(APIView):
         ]
 
         return Response({"alerts": alerts, "count": len(alerts)})
-
 
 
 
