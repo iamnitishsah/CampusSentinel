@@ -2,7 +2,6 @@ import uuid
 from django.db import models
 from django.db.models import Q, Index
 from pgvector.django import VectorField
-from django.contrib.postgres.indexes import GinIndex
 
 ROLE_CHOICES = [
     ("student", "Student"),
@@ -115,7 +114,6 @@ class CCTVFrame(models.Model):
     location_id = models.CharField(max_length=108, null=True, blank=True)
     timestamp = models.DateTimeField()
     face_id = models.CharField(max_length=108, null=True, blank=True)
-    raw = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "cctv_frames"
@@ -135,8 +133,6 @@ class Note(models.Model):
     category = models.CharField(max_length=64, null=True, blank=True)
     text = models.TextField()
     timestamp = models.DateTimeField()
-    # embedding = VectorField(dimensions=768, null=True, blank=True)
-    # embedding_model = models.CharField(max_length=128, null=True, blank=True)
 
     class Meta:
         db_table = "notes"
@@ -172,7 +168,6 @@ class LibraryCheckout(models.Model):
     entity = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="library_checkout")
     book_id = models.CharField(max_length=108)
     timestamp = models.DateTimeField()
-    raw = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "library_checkouts"
@@ -188,8 +183,7 @@ class FaceEmbedding(models.Model):
     face_id = models.CharField(primary_key=True, max_length=64)
     profile = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.SET_NULL, related_name="face_embeddings")
     embedding = VectorField(dimensions=512, null=True, blank=True)
-    embedding_model = models.CharField(max_length=128, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    embedding_model = models.CharField(max_length=128, null=True, blank=True, default="InceptionResnetV1")
 
     class Meta:
         db_table = "face_embeddings"
