@@ -2,9 +2,11 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Max, Q
 from rest_framework import generics, status, viewsets
+from . import models, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from . import models, serializers
+from rest_framework import status
+import httpx
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -123,44 +125,18 @@ class AlertsListAPIView(APIView):
 
 
 
-# class PredictLocationAPIView(APIView):
-#     """
-#     POST /api/entities/{entity_id}/predict_location/
-#     Body: {"lookback_minutes": 60} (optional)
-#     This view collects recent events for the entity and forwards them to the ML server,
-#     which returns the predicted location and evidence. The ML server is expected to
-#     implement the prediction logic.
-#     """
-#     def post(self, request, entity_id):
-#         # validate entity exists
-#         try:
-#             profile = models.Profile.objects.get(entity_id=entity_id)
-#         except models.Profile.DoesNotExist:
-#             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
-#
-#         serializer = serializers.PredictLocationRequestSerializer(data={"entity_id": entity_id, **request.data})
-#         serializer.is_valid(raise_exception=True)
-#         lookback = serializer.validated_data.get("lookback_minutes", 360)
-#
-#         since = timezone.now() - timedelta(minutes=lookback)
-#         ev_qs = models.Event.objects.filter(entity=profile, timestamp__gte=since).order_by("-timestamp")[:200]
-#
-#         events_payload = []
-#         for ev in ev_qs:
-#             events_payload.append({
-#                 "event_id": ev.event_id,
-#                 "event_type": ev.event_type,
-#                 "timestamp": ev.timestamp.isoformat(),
-#                 "location": ev.location,
-#                 "confidence": ev.confidence,
-#             })
-#
-#         # call ML service
-#         try:
-#             ml_resp = call_ml_predict_location(entity_id, events_payload)
-#         except Exception as e:
-#             return Response({"detail": f"Location service error: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
-#
-#         # expected ml_resp: {"location": "LIB", "score": 0.78, "evidence": [...]}
-#         return Response(ml_resp)
-#
+
+FASTAPI_URL = "http://localhost:8001/predict"
+API_KEY = "ChaosCoded"
+class AsyncModelProxyView(APIView):
+    async def post(self, request):
+        payload = {"data": request.data}
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(FASTAPI_URL, json=payload, headers={"X-API-KEY": API_KEY}, timeout=10.0)
+            except httpx.RequestError as e:
+                return Response({"error": "model server unreachable", "detail": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        if r.is_error:
+            return Response(r.json(), status=r.status_code)
+        return Response(r.json(), status=r.status_code)

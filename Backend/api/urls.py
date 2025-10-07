@@ -13,4 +13,5 @@ urlpatterns = [
     path("entities/<str:entity_id>/", views.ProfileDetailAPIView.as_view(), name="entity-detail"),
     path("entities/<str:entity_id>/timeline/", views.TimelineAPIView.as_view(), name="entity-timeline"),
     path("alerts/", views.AlertsListAPIView.as_view(), name="alerts-list"),
+
 ]
