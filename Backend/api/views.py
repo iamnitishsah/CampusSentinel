@@ -88,10 +88,8 @@ class TimelineDetailAPIView(APIView):
     Asynchronously retrieves an entity's timeline and generates a summary.
     Returns both the detailed event list and the AI-powered summary.
     """
-
     @async_to_sync
     async def get(self, request, entity_id):
-        # 1. Validate Profile and Time Parameters
         if not await sync_to_async(models.Profile.objects.filter(entity_id=entity_id).exists)():
             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -110,14 +108,10 @@ class TimelineDetailAPIView(APIView):
             return Response({"error": "Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Define async tasks for summary and timeline serialization
 
-        # Task for generating summary
         summary_task = get_summary_for_entity(entity_id, start_time, end_time)
 
-        # Task for fetching and serializing the timeline
         async def get_timeline_data():
-            # This function runs the synchronous DB query and serialization in an async-safe way
             @sync_to_async
             def fetch_and_serialize():
                 ev_qs = models.Event.objects.filter(entity__entity_id=entity_id, timestamp__gte=start_time,
@@ -137,13 +131,11 @@ class TimelineDetailAPIView(APIView):
 
             return await fetch_and_serialize()
 
-        # 3. Run both tasks concurrently and wait for their results
         summary_result, timeline_result = await asyncio.gather(
             summary_task,
             get_timeline_data()
         )
 
-        # 4. Return the combined response
         return Response({
             "summary": summary_result,
             "timeline": timeline_result
