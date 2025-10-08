@@ -1,8 +1,21 @@
 "use client";
 
+import {
+  AlertTriangle,
+  Bell,
+  Briefcase,
+  Building2,
+  ChevronRight,
+  Eye,
+  Menu,
+  Search,
+  Shield,
+  Upload,
+  User,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Shield, Search, AlertTriangle, Upload, X, User, Briefcase, Building2, Eye, Bell, Menu, ChevronRight } from "lucide-react";
 
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -63,12 +76,12 @@ export default function DashboardPage() {
       const url = q
         ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
         : "http://localhost:8000/api/profiles/";
-
+        
       const res = await fetch(url);
 
       if (res.ok) {
         const data = await res.json();
-        const sortedData = [...data].sort((a, b) =>
+                const sortedData = [...data].sort((a, b) =>
           a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
         );
 
@@ -157,11 +170,15 @@ export default function DashboardPage() {
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-white">Campus Sentinel</h1>
-                <p className="text-xs text-slate-400 hidden sm:block">Admin Dashboard</p>
+                <h1 className="text-lg sm:text-xl font-bold text-white font-serif">
+                  Campus Sentinel
+                </h1>
+                <p className="text-xs text-slate-400 hidden sm:block">
+                  Admin Dashboard
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
@@ -206,7 +223,7 @@ export default function DashboardPage() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {alerts.length > 0 ? (
               alerts.map((alert) => (
@@ -217,7 +234,9 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-white">{alert.name}</h3>
-                      <p className="text-sm text-slate-400">{alert.entity_id}</p>
+                      <p className="text-sm text-slate-400">
+                        {alert.entity_id}
+                      </p>
                     </div>
                     <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 ml-2" />
                   </div>
@@ -238,7 +257,9 @@ export default function DashboardPage() {
               <div className="text-center py-12">
                 <Shield className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400">No active alerts</p>
-                <p className="text-sm text-slate-500 mt-1">All systems operational</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  All systems operational
+                </p>
               </div>
             )}
           </div>
@@ -252,15 +273,15 @@ export default function DashboardPage() {
         />
       )}
 
-
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Total Entities</p>
-                <p className="text-2xl font-bold text-white mt-1">{entities.length}</p>
+                <p className="text-2xl font-bold text-white mt-1">
+                  {entities.length}
+                </p>
               </div>
               <div className="bg-blue-500/10 p-3 rounded-lg">
                 <User className="w-6 h-6 text-blue-500" />
@@ -272,7 +293,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Active Alerts</p>
-                <p className="text-2xl font-bold text-white mt-1">{alerts.length}</p>
+                <p className="text-2xl font-bold text-white mt-1">
+                  {alerts.length}
+                </p>
               </div>
               <div className="bg-red-500/10 p-3 rounded-lg">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -285,7 +308,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-slate-400 text-sm">Face Enrolled</p>
                 <p className="text-2xl font-bold text-white mt-1">
-                  {entities.filter(e => e.face_id).length}
+                  {entities.filter((e) => e.face_id).length}
                 </p>
               </div>
               <div className="bg-cyan-500/10 p-3 rounded-lg">
@@ -298,7 +321,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">System Status</p>
-                <p className="text-lg font-bold text-green-400 mt-1">Operational</p>
+                <p className="text-lg font-bold text-green-400 mt-1">
+                  Operational
+                </p>
               </div>
               <div className="bg-green-500/10 p-3 rounded-lg">
                 <Shield className="w-6 h-6 text-green-500" />
@@ -307,9 +332,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
           <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Search className="w-5 h-5 text-blue-500" />
@@ -326,7 +349,6 @@ export default function DashboardPage() {
               />
             </div>
           </div>
-
 
           <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -370,16 +392,18 @@ export default function DashboardPage() {
                 )}
               </button>
             </div>
-            
+
             {faceError && (
               <div className="mt-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg text-red-300 text-sm">
                 {faceError}
               </div>
             )}
-            
+
             {entityData && (
               <div className="mt-4 p-4 bg-gradient-to-br from-cyan-950/30 to-blue-950/30 border border-cyan-900/50 rounded-lg">
-                <h3 className="text-sm font-semibold text-cyan-400 mb-3">Identified Entity</h3>
+                <h3 className="text-sm font-semibold text-cyan-400 mb-3">
+                  Identified Entity
+                </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400 w-24">ID:</span>
@@ -410,7 +434,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-
         <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden">
           <div className="p-6 border-b border-slate-800/50">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -418,7 +441,7 @@ export default function DashboardPage() {
               Entity Registry
             </h2>
           </div>
-          
+
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -505,7 +528,9 @@ export default function DashboardPage() {
                       <td colSpan={7} className="px-4 py-12 text-center">
                         <User className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                         <p className="text-slate-400">No entities found</p>
-                        <p className="text-sm text-slate-500 mt-1">Try adjusting your search</p>
+                        <p className="text-sm text-slate-500 mt-1">
+                          Try adjusting your search
+                        </p>
                       </td>
                     </tr>
                   )}
