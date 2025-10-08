@@ -71,6 +71,8 @@ export default function EntityPage() {
     pastActivities: any[];
   } | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [timelineSummary, setTimelineSummary] = useState<string | null>(null);
+const [timelineData, setTimelineData] = useState<any[]>([]);
 
   const onDateChange = (value: any) => {
     if (value instanceof Date) {
@@ -185,16 +187,6 @@ export default function EntityPage() {
     name: activity.location,
     count: activity.count,
   }));
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
-  };
-
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return {
@@ -371,21 +363,18 @@ export default function EntityPage() {
             </div>
 
 
-            <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800/50 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Activity className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-lg font-bold text-white">
-                  Timeline Summary
-                </h3>
-              </div>
-              <p className="text-slate-300 leading-relaxed">
-                {summary || "No summary available."}
-              </p>
-            </div>
+<div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6 mb-6">
+  <h2 className="text-lg font-semibold text-blue-400 mb-3">Activity Summary</h2>
+  {timelineSummary ? (
+    <p className="text-slate-300 whitespace-pre-line">{timelineSummary}</p>
+  ) : (
+    <p className="text-slate-500">No summary available</p>
+  )}
+</div>
+
 
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
               <div className="lg:col-span-1">
                 <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800/50 p-6">
                   <div className="flex items-center gap-3 mb-4">
