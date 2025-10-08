@@ -1,13 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState, useCallback } from "react";
+
+// A simple debounce hook
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    // Set up a timer
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // Clean up the timer if the value changes
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 
 interface Entity {
   entity_id: string;
   name: string;
   role: string;
   department: string;
+  face_id?: string;
 }
 
 export default function DashboardPage() {
@@ -15,16 +36,27 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchEntities = async (q: string = "") => {
+  const debouncedSearch = useDebounce(search, 500);
+
+  const fetchEntities = useCallback(async (q: string = "") => {
     setLoading(true);
     try {
-      const url = q ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}` : "http://localhost:8000/api/entities/";
+      const url = q
+        ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
+        : "http://localhost:8000/api/profiles/";
+
       const res = await fetch(url);
+
       if (res.ok) {
-        const data = await res.json();
-        setEntities(data);
-      } else {
-        console.error("Failed to fetch entities");
+  const data = await res.json();
+  const sortedData = [...data].sort((a, b) =>
+    a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
+  );
+
+  setEntities(sortedData);
+}
+ else {
+        console.error("Failed to fetch entities:", res.statusText);
         setEntities([]);
       }
     } catch (err) {
@@ -33,20 +65,15 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchEntities();
   }, []);
+  useEffect(() => {
+    fetchEntities(debouncedSearch);
+  }, [debouncedSearch, fetchEntities]);
 
-  const handleSearch = () => {
-    fetchEntities(search);
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-
+      <div className="mx-auto p-10">
         <h1 className="text-3xl font-bold mb-6 text-center">
           🏠 Campus Security Dashboard
         </h1>
@@ -56,18 +83,15 @@ export default function DashboardPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or ID..."
+            placeholder="Search by name, ID, email..."
             className="w-full max-w-xl p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
           />
-          <button
-            onClick={handleSearch}
-            className="px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Search
-          </button>
+   
         </div>
 
-        {loading && <div className="text-center text-slate-400">Loading...</div>}
+        {loading && (
+          <div className="text-center text-slate-400">Loading...</div>
+        )}
 
         <div className="overflow-x-auto bg-slate-900 rounded-xl shadow-lg">
           <table className="min-w-full border-collapse">
@@ -77,8 +101,9 @@ export default function DashboardPage() {
                 <th className="p-3 border-b border-slate-700">Entity ID</th>
                 <th className="p-3 border-b border-slate-700">Name</th>
                 <th className="p-3 border-b border-slate-700">Role</th>
+                <th className="p-4 border-b border-slate-700">Face ID</th>  
                 <th className="p-3 border-b border-slate-700">Department</th>
-
+                <th className="p-3 border-b border-slate-700">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -88,13 +113,29 @@ export default function DashboardPage() {
                     key={entity.entity_id}
                     className="hover:bg-slate-800 transition-colors"
                   >
-                    <td className="p-3 border-b border-slate-800">{index + 1}</td>
-                    <td className="p-3 border-b border-slate-800">{entity.entity_id}</td>
-                    <td className="p-3 border-b border-slate-800">{entity.name}</td>
-                    <td className="p-3 border-b border-slate-800">{entity.role}</td>
-                    <td className="p-3 border-b border-slate-800">{entity.department || "—"}</td>
                     <td className="p-3 border-b border-slate-800">
-                      <Link href={`/pages/EntitySearch/${entity.entity_id}`} className="text-blue-400 hover:underline">
+                      {index + 1}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      {entity.entity_id}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      {entity.name}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      {entity.role}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      {entity.face_id || "—"}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      {entity.department || "—"}
+                    </td>
+                    <td className="p-3 border-b border-slate-800">
+                      <Link
+                        href={`/pages/EntitySearch/${entity.entity_id}`}
+                        className="text-blue-400 hover:underline"
+                      >
                         View Details
                       </Link>
                     </td>
@@ -102,8 +143,8 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-400">
-                    No entities found.
+                  <td colSpan={7} className="p-6 text-center text-slate-400">
+                    { !loading && "No entities found." }
                   </td>
                 </tr>
               )}
