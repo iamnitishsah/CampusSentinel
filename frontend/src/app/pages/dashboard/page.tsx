@@ -76,12 +76,12 @@ export default function DashboardPage() {
       const url = q
         ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
         : "http://localhost:8000/api/profiles/";
-
+        
       const res = await fetch(url);
 
       if (res.ok) {
         const data = await res.json();
-        const sortedData = [...data].sort((a, b) =>
+                const sortedData = [...data].sort((a, b) =>
           a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
         );
 
