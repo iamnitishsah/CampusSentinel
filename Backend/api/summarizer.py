@@ -12,7 +12,7 @@ try:
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set.")
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-pro")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     print("Gemini initialized.")
 except Exception as e:
     print(f"Error initializing Gemini: {e}")
