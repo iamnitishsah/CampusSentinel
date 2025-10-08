@@ -1,13 +1,9 @@
-import Image from "next/image";
-import Login from './auth/login/page';
-import DashboardPage from "./pages/dashboard/page";
-import EntityPage from "./pages/EntitySearch/[id]/page";
+import Login from "./auth/login/page";
 
 export default function Home() {
   return (
-   <div>
-   <DashboardPage/>
-
-   </div>
+    <div>
+      <Login />
+    </div>
   );
 }
