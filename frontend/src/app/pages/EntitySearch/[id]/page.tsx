@@ -2,6 +2,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
+import './calender.css'
 import "react-calendar/dist/Calendar.css";
 
 import {
@@ -92,7 +93,6 @@ const [timelineData, setTimelineData] = useState<any[]>([]);
         if (pRes.ok) {
           const pjson = await pRes.json();
           setProfile(pjson);
-          // Timeline
           let url = `http://localhost:8000/api/entities/${entityId}/timeline/`;
           const params = new URLSearchParams();
 
