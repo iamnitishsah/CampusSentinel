@@ -13,6 +13,10 @@ User interface for monitoring, visualization, and interaction.
 ### ⚙️ Backend
 Core logic, API services, and database management using **Django REST Framework (DRF)**.
 
+> **Environment Variables:** `.env` file required for backend configuration:  
+> [Download Here](https://drive.google.com/file/d/1rVQgnPy75QGwboxkSQoKbdOUMnIemr_X/view?usp=sharing)
+
+
 ### 🤖 AI
 Machine learning and facial recognition pipelines for predictive analytics and cross-source entity resolution.
 
