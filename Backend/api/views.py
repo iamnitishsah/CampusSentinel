@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from asgiref.sync import async_to_sync, sync_to_async
 from . import models, serializers
+from pgvector.django import CosineDistance
 from .summarizer import get_summary_for_entity
 
 
@@ -143,3 +144,32 @@ class TimelineDetailAPIView(APIView):
             "summary": summary_result,
             "timeline": timeline_result
         })
+
+
+class FaceSearchAPIView(APIView):
+    """
+    Receives a 512-dimension embedding and finds the closest match
+    in the database using pgvector's cosine distance.
+
+    POST /api/search/face/
+    Body: {"embedding": [0.1, 0.2, ...]}
+    """
+
+    def post(self, request):
+        serializer = serializers.FaceSearchRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        embedding = serializer.validated_data["embedding"]
+
+        closest_face = models.FaceEmbedding.objects.annotate(
+            distance=CosineDistance('embedding', embedding)
+        ).order_by('distance').first()
+
+        if closest_face and closest_face.distance < 0.4:
+            profile_data = serializers.ProfileSerializer(closest_face.profile).data
+            return Response({
+                "match": True,
+                "profile": profile_data,
+                "distance": closest_face.distance
+            })
+
+        return Response({"match": False, "detail": "No confident match found."}, status=status.HTTP_404_NOT_FOUND)

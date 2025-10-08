@@ -17,4 +17,5 @@ urlpatterns = [
         views.TimelineDetailAPIView.as_view(),
         name="entity-timeline-detail"
     ),
+    path("search/face/", views.FaceSearchAPIView.as_view(), name="face-search"),
 ]

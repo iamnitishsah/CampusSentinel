@@ -121,3 +121,10 @@ class SemanticSearchRequestSerializer(serializers.Serializer):
 class PredictLocationRequestSerializer(serializers.Serializer):
     entity_id = serializers.CharField()
     lookback_minutes = serializers.IntegerField(default=60, min_value=1)
+
+class FaceSearchRequestSerializer(serializers.Serializer):
+    embedding = serializers.ListField(
+        child=serializers.FloatField(),
+        min_length=512,
+        max_length=512
+    )
