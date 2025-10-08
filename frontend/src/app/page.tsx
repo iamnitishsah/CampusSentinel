@@ -1,9 +1,13 @@
-import Login from "./auth/login/page";
+
+import DashboardPage from "./pages/dashboard/page";
+
 
 export default function Home() {
   return (
-    <div>
-      <Login />
-    </div>
+   <div>
+
+   <DashboardPage/>
+
+   </div>
   );
 }
