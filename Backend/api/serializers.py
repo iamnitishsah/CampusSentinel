@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from . import models
 
-
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Profile
@@ -19,7 +18,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
-
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Event
@@ -33,24 +31,20 @@ class EventSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
-
 class WifiLogsSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.WifiLogs
         fields = ["id", "event", "device_hash", "ap_id", "timestamp"]
-
 
 class CardSwipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.CardSwipe
         fields = ["id", "event", "card_id", "location_id", "timestamp"]
 
-
 class CCTVFrameSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.CCTVFrame
         fields = ["frame_id", "event", "location_id", "timestamp", "face_id"]
-
 
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,7 +57,6 @@ class NoteSerializer(serializers.ModelSerializer):
             "text",
             "timestamp",
         ]
-
 
 class LabBookingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -78,7 +71,6 @@ class LabBookingSerializer(serializers.ModelSerializer):
             "attended",
         ]
 
-
 class LibraryCheckoutSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.LibraryCheckout
@@ -89,7 +81,6 @@ class LibraryCheckoutSerializer(serializers.ModelSerializer):
             "book_id",
             "timestamp",
         ]
-
 
 class TimelineEventSerializer(serializers.Serializer):
     event_id = serializers.CharField()
@@ -106,21 +97,6 @@ class TimelineEventSerializer(serializers.Serializer):
     notes = NoteSerializer(many=True, read_only=True)
     lab_bookings = LabBookingSerializer(many=True, read_only=True)
     library_checkout = LibraryCheckoutSerializer(many=True, read_only=True)
-
-
-
-class EntitySearchSerializer(serializers.Serializer):
-    q = serializers.CharField()
-
-
-class SemanticSearchRequestSerializer(serializers.Serializer):
-    query = serializers.CharField()
-    top_k = serializers.IntegerField(default=5, min_value=1, max_value=100)
-
-
-class PredictLocationRequestSerializer(serializers.Serializer):
-    entity_id = serializers.CharField()
-    lookback_minutes = serializers.IntegerField(default=60, min_value=1)
 
 class FaceSearchRequestSerializer(serializers.Serializer):
     embedding = serializers.ListField(

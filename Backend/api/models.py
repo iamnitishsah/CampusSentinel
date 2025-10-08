@@ -44,7 +44,6 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.name} ({self.entity_id})"
 
-
 class Event(models.Model):
     event_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     entity = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.SET_NULL, related_name="events")
@@ -64,7 +63,6 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.event_type} @ {self.timestamp.isoformat()}"
-
 
 class WifiLogs(models.Model):
     id = models.AutoField(primary_key=True)
@@ -86,7 +84,6 @@ class WifiLogs(models.Model):
     def __str__(self):
         return f"wifi:{self.device_hash}@{self.ap_id}@{self.timestamp.isoformat()}"
 
-
 class CardSwipe(models.Model):
     id = models.AutoField(primary_key=True)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="card_swipes")
@@ -107,7 +104,6 @@ class CardSwipe(models.Model):
     def __str__(self):
         return f"card:{self.card_id}@{self.location_id}@{self.timestamp.isoformat()}"
 
-
 class CCTVFrame(models.Model):
     frame_id = models.CharField(primary_key=True, max_length=64)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="cctv_frames")
@@ -125,7 +121,6 @@ class CCTVFrame(models.Model):
     def __str__(self):
         return f"frame:{self.frame_id} @ {self.location_id} ({self.timestamp.isoformat()})"
 
-
 class Note(models.Model):
     note_id = models.CharField(primary_key=True, max_length=64)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="notes")
@@ -142,7 +137,6 @@ class Note(models.Model):
 
     def __str__(self):
         return f"note:{self.note_id} ({self.category})"
-
 
 class LabBooking(models.Model):
     booking_id = models.CharField(primary_key=True, max_length=64)
@@ -177,7 +171,6 @@ class LibraryCheckout(models.Model):
 
     def __str__(self):
         return f"library:{self.checkout_id} ({self.book_id})"
-
 
 class FaceEmbedding(models.Model):
     face_id = models.CharField(primary_key=True, max_length=64)

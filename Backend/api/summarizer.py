@@ -13,9 +13,9 @@ try:
         raise ValueError("GEMINI_API_KEY environment variable not set.")
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.5-pro")
-    print("Gemini client initialized successfully.")
+    print("Gemini initialized.")
 except Exception as e:
-    print(f"Error initializing Gemini client: {e}")
+    print(f"Error initializing Gemini: {e}")
     model = None
 
 

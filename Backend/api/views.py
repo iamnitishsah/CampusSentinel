@@ -1,8 +1,6 @@
 import time
 import asyncio
-from datetime import datetime, time
-import httpx
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from django.utils import timezone
 from django.db.models import Max, Q
 from rest_framework import generics, status, viewsets
@@ -12,6 +10,8 @@ from asgiref.sync import async_to_sync, sync_to_async
 from . import models, serializers
 from pgvector.django import CosineDistance
 from .summarizer import get_summary_for_entity
+from .prediction import LocationPredictor
+from .explanation import get_prediction_explanation
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -63,14 +63,7 @@ class AlertsListAPIView(APIView):
         return Response({"alerts": alerts, "count": len(alerts)})
 
 
-
-
-
 class TimelineDetailAPIView(APIView):
-    """
-    Asynchronously retrieves an entity's timeline for a specific date and generates a summary.
-    Returns both the detailed event list and the AI-powered summary.
-    """
     @async_to_sync
     async def get(self, request, entity_id):
         if not await sync_to_async(models.Profile.objects.filter(entity_id=entity_id).exists)():
@@ -145,3 +138,37 @@ class FaceSearchAPIView(APIView):
             })
 
         return Response({"match": False, "detail": "No confident match found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class PredictionAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        entity_id = request.data.get('entity_id')
+        if not entity_id:
+            return Response({"error": "entity_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            events_qs = models.Event.objects.filter(
+                entity__entity_id=entity_id,
+                location__isnull=False
+            ).values('timestamp', 'location').order_by('timestamp')
+
+            predictor = LocationPredictor()
+            predicted_location, future_time, entity_df = predictor.train_and_predict(events_qs)
+
+            if predicted_location is None:
+                return Response({"error": "No location data found for this entity"}, status=status.HTTP_404_NOT_FOUND)
+
+            explanation = get_prediction_explanation(entity_df, predicted_location, future_time)
+
+            entity_df['timestamp'] = entity_df['timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+            past_activities = entity_df[['timestamp', 'location']].to_dict(orient='records')
+
+            return Response({
+                "entity_id": entity_id,
+                "predicted_location": predicted_location,
+                "explanation": explanation,
+                "past_activities": past_activities
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

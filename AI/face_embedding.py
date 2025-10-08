@@ -9,7 +9,6 @@ import io
 import os
 
 app = FastAPI(title="Face Identification Service")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "*"],
@@ -18,14 +17,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 DRF_SEARCH_URL = os.environ.get("DRF_SEARCH_URL", "http://127.0.0.1:8000/api/search/face/")
+
 
 try:
     face_model = InceptionResnetV1(pretrained='vggface2').eval()
-    print("✅ Pre-trained model loaded successfully.")
+    print("vggface2 loaded.")
 except Exception as e:
-    print(f"❌ Error loading model: {e}")
+    print(f"Error loading: {e}")
     face_model = None
+
 
 transform = transforms.Compose([
     transforms.Resize((160, 160)),
@@ -47,7 +49,6 @@ def get_embedding_from_image(image_bytes: bytes) -> list:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not process image: {e}")
 
-
 @app.post("/identify-and-search/")
 async def identify_and_search(file: UploadFile = File(...)):
     image_bytes = await file.read()
@@ -66,7 +67,3 @@ async def identify_and_search(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail=f"Service Unavailable: Could not connect to DRF backend. {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
-
-@app.get("/")
-def read_root():
-    return {"status": "Face Embedding Service is running."}
