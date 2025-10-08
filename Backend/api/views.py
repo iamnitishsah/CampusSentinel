@@ -15,7 +15,7 @@ from .explanation import get_prediction_explanation
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = models.Profile.objects.all().order_by('name')
+    queryset = models.Profile.objects.order_by('name')[:100]
     serializer_class = serializers.ProfileSerializer
     lookup_field = 'entity_id'
 
