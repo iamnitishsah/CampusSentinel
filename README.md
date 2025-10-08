@@ -5,6 +5,8 @@
 
 This repository contains the complete source code for **CampusSentinel**, an integrated system for intelligent campus security and monitoring.
 
+For detailed setup and configuration, please refer to the README files inside each module:
+
 The project is divided into three main modules:
 
 ### 🖥️ Frontend
