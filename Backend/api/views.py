@@ -1,4 +1,6 @@
+import time
 import asyncio
+from datetime import datetime, time
 import httpx
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -85,7 +87,7 @@ class AsyncModelProxyView(APIView):
 
 class TimelineDetailAPIView(APIView):
     """
-    Asynchronously retrieves an entity's timeline and generates a summary.
+    Asynchronously retrieves an entity's timeline for a specific date and generates a summary.
     Returns both the detailed event list and the AI-powered summary.
     """
     @async_to_sync
@@ -93,29 +95,31 @@ class TimelineDetailAPIView(APIView):
         if not await sync_to_async(models.Profile.objects.filter(entity_id=entity_id).exists)():
             return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        start_time_str = request.query_params.get('start_time')
-        end_time_str = request.query_params.get('end_time')
+        date_str = request.query_params.get('date')
         types = request.query_params.get("types")
 
-        if not start_time_str or not end_time_str:
-            return Response({"error": "Both 'start_time' and 'end_time' are required."},
+        if not date_str:
+            return Response({"error": "A 'date' query parameter (YYYY-MM-DD) is required."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            start_time = timezone.make_aware(datetime.fromisoformat(start_time_str))
-            end_time = timezone.make_aware(datetime.fromisoformat(end_time_str))
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            start_time = timezone.make_aware(datetime.combine(target_date, time.min))
+            end_time = timezone.make_aware(datetime.combine(target_date, time.max))
         except ValueError:
-            return Response({"error": "Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)."},
+            return Response({"error": "Invalid date format. Please use YYYY-MM-DD."},
                             status=status.HTTP_400_BAD_REQUEST)
-
 
         summary_task = get_summary_for_entity(entity_id, start_time, end_time)
 
         async def get_timeline_data():
             @sync_to_async
             def fetch_and_serialize():
-                ev_qs = models.Event.objects.filter(entity__entity_id=entity_id, timestamp__gte=start_time,
-                                                    timestamp__lte=end_time)
+                ev_qs = models.Event.objects.filter(
+                    entity__entity_id=entity_id,
+                    timestamp__gte=start_time,
+                    timestamp__lte=end_time
+                )
                 if types:
                     allowed = [t.strip() for t in types.split(",") if t.strip()]
                     if allowed:
@@ -128,7 +132,6 @@ class TimelineDetailAPIView(APIView):
 
                 serializer = serializers.TimelineEventSerializer(ev_qs, many=True)
                 return serializer.data
-
             return await fetch_and_serialize()
 
         summary_result, timeline_result = await asyncio.gather(
@@ -140,4 +143,3 @@ class TimelineDetailAPIView(APIView):
             "summary": summary_result,
             "timeline": timeline_result
         })
-
