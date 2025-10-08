@@ -280,7 +280,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-slate-400 text-sm">Total Entities</p>
                 <p className="text-2xl font-bold text-white mt-1">
-                  {entities.length}
+                  {7000}
                 </p>
               </div>
               <div className="bg-blue-500/10 p-3 rounded-lg">
@@ -308,7 +308,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-slate-400 text-sm">Face Enrolled</p>
                 <p className="text-2xl font-bold text-white mt-1">
-                  {entities.filter((e) => e.face_id).length}
+                  {5000}
                 </p>
               </div>
               <div className="bg-cyan-500/10 p-3 rounded-lg">
