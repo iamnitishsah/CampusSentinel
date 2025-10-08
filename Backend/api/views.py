@@ -64,26 +64,6 @@ class AlertsListAPIView(APIView):
 
 
 
-FASTAPI_URL = "http://localhost:8001/predict"
-API_KEY = "ChaosCoded"
-
-# class AsyncModelProxyView(APIView):
-#     @async_to_sync
-#     async def post(self, request):
-#         payload = {"data": request.data}
-#         async with httpx.AsyncClient() as client:
-#             try:
-#                 r = await client.post(FASTAPI_URL, json=payload, headers={"X-API-KEY": API_KEY}, timeout=10.0)
-#                 r.raise_for_status()
-#             except httpx.RequestError as e:
-#                 return Response({"error": "Model service unreachable", "detail": str(e)},
-#                                 status=status.HTTP_503_SERVICE_UNAVAILABLE)
-#             except httpx.HTTPStatusError as e:
-#                 return Response({"error": "Error from model service", "detail": e.response.text},
-#                                 status=e.response.status_code)
-#
-#         return Response(r.json(), status=r.status_code)
-
 
 
 class TimelineDetailAPIView(APIView):
@@ -147,14 +127,6 @@ class TimelineDetailAPIView(APIView):
 
 
 class FaceSearchAPIView(APIView):
-    """
-    Receives a 512-dimension embedding and finds the closest match
-    in the database using pgvector's cosine distance.
-
-    POST /api/search/face/
-    Body: {"embedding": [0.1, 0.2, ...]}
-    """
-
     def post(self, request):
         serializer = serializers.FaceSearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
