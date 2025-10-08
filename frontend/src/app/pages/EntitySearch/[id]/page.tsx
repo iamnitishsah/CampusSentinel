@@ -63,7 +63,7 @@ export default function EntityPage() {
     weekAgo.toISOString().slice(0, 10)
   );
   const [types, setTypes] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(weekAgo);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [summary, setSummary] = useState<string>("");
   const [predict, setPredict] = useState<{
     predictedLocation: string;
@@ -71,7 +71,7 @@ export default function EntityPage() {
     pastActivities: any[];
   } | null>(null);
   const [filter, setFilter] = useState<string>("all");
-  const [timelineSummary, setTimelineSummary] = useState<string | null>(null);
+
 const [timelineData, setTimelineData] = useState<any[]>([]);
 
   const onDateChange = (value: any) => {
@@ -365,8 +365,8 @@ const [timelineData, setTimelineData] = useState<any[]>([]);
 
 <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-6 mb-6">
   <h2 className="text-lg font-semibold text-blue-400 mb-3">Activity Summary</h2>
-  {timelineSummary ? (
-    <p className="text-slate-300 whitespace-pre-line">{timelineSummary}</p>
+  {summary ? (
+    <p className="text-slate-300 whitespace-pre-line">{summary}</p>
   ) : (
     <p className="text-slate-500">No summary available</p>
   )}
