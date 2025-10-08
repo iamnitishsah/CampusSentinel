@@ -1,6 +1,7 @@
 import torch
 import requests
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from facenet_pytorch import InceptionResnetV1
 from PIL import Image
 from torchvision import transforms
@@ -8,6 +9,14 @@ import io
 import os
 
 app = FastAPI(title="Face Identification Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DRF_SEARCH_URL = os.environ.get("DRF_SEARCH_URL", "http://127.0.0.1:8000/api/search/face/")
 
@@ -57,7 +66,6 @@ async def identify_and_search(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail=f"Service Unavailable: Could not connect to DRF backend. {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
-
 
 @app.get("/")
 def read_root():

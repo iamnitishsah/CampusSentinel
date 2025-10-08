@@ -67,22 +67,22 @@ class AlertsListAPIView(APIView):
 FASTAPI_URL = "http://localhost:8001/predict"
 API_KEY = "ChaosCoded"
 
-class AsyncModelProxyView(APIView):
-    @async_to_sync
-    async def post(self, request):
-        payload = {"data": request.data}
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.post(FASTAPI_URL, json=payload, headers={"X-API-KEY": API_KEY}, timeout=10.0)
-                r.raise_for_status()
-            except httpx.RequestError as e:
-                return Response({"error": "Model service unreachable", "detail": str(e)},
-                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            except httpx.HTTPStatusError as e:
-                return Response({"error": "Error from model service", "detail": e.response.text},
-                                status=e.response.status_code)
-
-        return Response(r.json(), status=r.status_code)
+# class AsyncModelProxyView(APIView):
+#     @async_to_sync
+#     async def post(self, request):
+#         payload = {"data": request.data}
+#         async with httpx.AsyncClient() as client:
+#             try:
+#                 r = await client.post(FASTAPI_URL, json=payload, headers={"X-API-KEY": API_KEY}, timeout=10.0)
+#                 r.raise_for_status()
+#             except httpx.RequestError as e:
+#                 return Response({"error": "Model service unreachable", "detail": str(e)},
+#                                 status=status.HTTP_503_SERVICE_UNAVAILABLE)
+#             except httpx.HTTPStatusError as e:
+#                 return Response({"error": "Error from model service", "detail": e.response.text},
+#                                 status=e.response.status_code)
+#
+#         return Response(r.json(), status=r.status_code)
 
 
 
