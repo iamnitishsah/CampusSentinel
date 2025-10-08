@@ -8,6 +8,7 @@ A comprehensive backend system for tracking and analyzing campus entity activiti
 
 ## Features
 
+- **JWT Authentication**: Secure user registration and token-based authentication with refresh tokens
 - **Multi-Source Activity Tracking**: WiFi logs, CCTV frames, card swipes, lab bookings, library checkouts
 - **Face Recognition Integration**: pgvector-based cosine similarity search for face matching
 - **AI-Powered Timeline Summarization**: Google Gemini 2.5 Pro for natural language summaries
@@ -19,6 +20,7 @@ A comprehensive backend system for tracking and analyzing campus entity activiti
 ## Tech Stack
 
 - **Framework**: Django 5.2 + Django REST Framework
+- **Authentication**: JWT (Simple JWT) with token refresh and blacklist
 - **Database**: PostgreSQL with pgvector extension (Supabase)
 - **AI/ML**: 
   - Google Gemini 2.5 Pro (summarization)
@@ -137,6 +139,13 @@ Backend/
 │   ├── prediction.py            # ML location prediction
 │   ├── explanation.py           # Prediction explanations
 │   └── summarizer.py            # Timeline summarization
+├── user/                        # User authentication app
+│   ├── migrations/              # Database migrations
+│   ├── __init__.py
+│   ├── models.py                # Custom User model
+│   ├── serializers.py           # User serializers
+│   ├── views.py                 # Auth views
+│   └── urls.py                  # Auth URL routes
 ├── manage.py                    # Django management script
 ├── .env                         # Environment variables
 ├── requirements.txt             # Python dependencies
@@ -151,11 +160,113 @@ http://localhost:8000/api
 ```
 
 ### Authentication
-Currently no authentication required (development mode).
+Most endpoints require JWT authentication. Include the access token in the Authorization header:
+
+```bash
+Authorization: Bearer <your_access_token>
+```
+
+**Public endpoints** (no authentication required):
+- `POST /users/register/` - User registration
+- `POST /users/token/` - Obtain access/refresh tokens
+
+---
+
+### Authentication Endpoints
+
+#### User Registration
+```
+POST /users/register/
+```
+
+**Request Body:**
+```json
+{
+  "email": "alice.johnson@university.edu",
+  "password": "securePassword123",
+  "first_name": "Alice",
+  "last_name": "Johnson"
+}
+```
+
+**Response (201 CREATED):**
+```json
+{
+  "email": "alice.johnson@university.edu",
+  "first_name": "Alice",
+  "last_name": "Johnson"
+}
+```
+
+#### Obtain Token (Login)
+```
+POST /users/token/
+```
+
+**Request Body:**
+```json
+{
+  "email": "alice.johnson@university.edu",
+  "password": "securePassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Token Lifetimes:**
+- Access Token: 15 minutes
+- Refresh Token: 7 days
+
+#### Refresh Access Token
+```
+POST /users/token/refresh/
+```
+
+**Request Body:**
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** When `ROTATE_REFRESH_TOKENS` is enabled, a new refresh token is returned and the old one is blacklisted.
+
+#### Logout (Blacklist Token)
+```
+POST /users/token/blacklist/
+```
+
+**Request Body:**
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
 
 ---
 
 ### 1. Profile Management
+
+**Authentication Required**: Yes
 
 #### List/Create Profiles
 ```
@@ -169,6 +280,12 @@ GET    /api/profiles/{entity_id}/
 PUT    /api/profiles/{entity_id}/
 PATCH  /api/profiles/{entity_id}/
 DELETE /api/profiles/{entity_id}/
+```
+
+**Example Request:**
+```bash
+curl "http://localhost:8000/api/profiles/" \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -201,7 +318,8 @@ Searches across: name, email, card_id, device_hash, face_id, entity_id, student_
 
 **Example Request:**
 ```bash
-curl "http://localhost:8000/api/entities/?q=alice"
+curl "http://localhost:8000/api/entities/?q=alice" \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -233,7 +351,8 @@ GET /api/entities/{entity_id}/
 
 **Example Request:**
 ```bash
-curl "http://localhost:8000/api/entities/e7f8g9h0/"
+curl "http://localhost:8000/api/entities/e7f8g9h0/" \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -268,7 +387,8 @@ GET /api/alerts/?hours={threshold_hours}
 
 **Example Request:**
 ```bash
-curl "http://localhost:8000/api/alerts/?hours=24"
+curl "http://localhost:8000/api/alerts/?hours=24" \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -310,7 +430,8 @@ GET /api/entities/{entity_id}/timeline/?date={YYYY-MM-DD}&types={event_types}
 
 **Example Request:**
 ```bash
-curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08&types=wifi_logs,card_swipes"
+curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08&types=wifi_logs,card_swipes" \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -362,6 +483,7 @@ POST /api/search/face/
 **Example Request:**
 ```bash
 curl -X POST "http://localhost:8000/api/search/face/" \
+  -H "Authorization: Bearer <your_access_token>" \
   -H "Content-Type: application/json" \
   -d '{"embedding": [0.123, -0.456, ...]}'
 ```
@@ -413,6 +535,7 @@ POST /api/predict/
 **Example Request:**
 ```bash
 curl -X POST "http://localhost:8000/api/predict/" \
+  -H "Authorization: Bearer <your_access_token>" \
   -H "Content-Type: application/json" \
   -d '{"entity_id": "e7f8g9h0"}'
 ```
@@ -450,6 +573,17 @@ curl -X POST "http://localhost:8000/api/predict/" \
 ---
 
 ## Database Models
+
+### User
+Custom user model for authentication.
+
+**Fields:**
+- `email` (PK): Email address (used for login)
+- `first_name`: First name
+- `last_name`: Last name
+- `is_staff`: Staff status
+- `is_active`: Active status
+- `date_joined`: Registration date
 
 ### Profile
 Primary entity model storing user information.
@@ -602,6 +736,18 @@ prediction = model.predict(future_features)
 
 ## Configuration
 
+### JWT Settings
+
+```python
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+```
+
 ### CORS Settings
 
 Configured for frontend at `http://localhost:3000`:
@@ -642,257 +788,18 @@ DATABASES = {
 ### Manual API Testing
 
 ```bash
-# Test entity search
-curl "http://localhost:8000/api/entities/?q=alice"
-
-# Test timeline
-curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08"
-
-# Test prediction
-curl -X POST "http://localhost:8000/api/predict/" \
+# Register a new user
+curl -X POST "http://localhost:8000/users/register/" \
   -H "Content-Type: application/json" \
-  -d '{"entity_id": "e7f8g9h0"}'
-```
+  -d '{
+    "email": "test@university.edu",
+    "password": "testPassword123",
+    "first_name": "Test",
+    "last_name": "User"
+  }'
 
-### Django Shell
-
-```bash
-python manage.py shell
-
-# Test queries
-from api.models import Profile, Event
-Profile.objects.all()
-Event.objects.filter(entity__name__icontains='alice')
-```
-
-### Admin Panel
-
-Access `http://localhost:8000/admin` to:
-- View/edit all models
-- Test data relationships
-- Monitor database content
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**1. Database Connection Error**
-```
-django.db.utils.OperationalError: could not connect to server
-```
-**Solution:** Verify `.env` credentials, check Supabase dashboard for connection string.
-
-**2. Gemini API Error**
-```
-Error initializing Gemini: API key not valid
-```
-**Solution:** Get valid API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
-
-**3. pgvector Extension Not Found**
-```
-django.db.utils.ProgrammingError: type "vector" does not exist
-```
-**Solution:** Ensure pgvector is enabled in Supabase:
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-**4. Migration Issues**
-```bash
-# Reset migrations
-python manage.py migrate api zero
-python manage.py migrate
-```
-
-**5. Port Already in Use**
-```bash
-# Find and kill process
-# Windows
-netstat -ano | findstr :8000
-taskkill /PID <PID> /F
-
-# Linux/macOS
-lsof -ti:8000 | xargs kill -9
-```
-
----
-
-## Performance Optimization
-
-### Database Indexes
-
-All models have optimized indexes:
-- `entity + timestamp` for timeline queries
-- `event_type + timestamp` for filtered queries
-- Vector index on face embeddings
-
-### Query Optimization
-
-```python
-# Use select_related for foreign keys
-Event.objects.select_related('entity')
-
-# Use prefetch_related for reverse relations
-Profile.objects.prefetch_related('events')
-```
-
-
----
-
-## Environment Variables Reference
-
-Complete `.env` template:
-
-```env
-# ===================================
-# Database Configuration (Supabase)
-# ===================================
-DB_NAME=postgres
-DB_USER=postgres.xxxxxxxx
-DB_PASSWORD=your_supabase_password
-DB_HOST=db.xxxxxxxx.supabase.co
-DB_PORT=5432
-
-# ===================================
-# Google Gemini AI
-# ===================================
-GEMINI_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-
----
-
-## Data Flow Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                      │
-│                    http://localhost:3000                     │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                ┌───────────┴───────────┐
-                │                       │
-                ▼                       ▼
-┌───────────────────────┐   ┌──────────────────────┐
-│   AI Service (FastAPI)│   │ Backend (Django)     │
-│   localhost:8001      │───▶ localhost:8000       │
-│                       │   │                      │
-│ - Face Embedding      │   │ - Timeline API       │
-│ - InceptionResnetV1   │   │ - Search API         │
-└───────────────────────┘   │ - Prediction API     │
-                            │ - Face Search API    │
-                            └──────────┬───────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                  │
-                    ▼                  ▼                  ▼
-            ┌──────────────┐  ┌───────────────┐  ┌──────────────┐
-            │  PostgreSQL  │  │ Gemini 2.5    │  │  pgvector    │
-            │  (Supabase)  │  │ Pro API       │  │  Extension   │
-            │              │  │               │  │              │
-            │ - Profiles   │  │ - Summary     │  │ - Face       │
-            │ - Events     │  │ - Explanation │  │   Embeddings │
-            │ - Logs       │  │               │  │   Search     │
-            └──────────────┘  └───────────────┘  └──────────────┘
-
----
-
-## API Request/Response Examples
-
-### Complete Workflow Examples
-
-#### 1. Face Identification Workflow
-
-```bash
-# Step 1: Upload face image to AI service
-curl -X POST "http://localhost:8001/identify-and-search/" \
-  -F "file=@person_face.jpg"
-
-# Response from AI → Backend → AI
-{
-  "match": true,
-  "profile": {
-    "entity_id": "e7f8g9h0",
-    "name": "Alice Johnson",
-    "role": "student",
-    "email": "alice.johnson@university.edu",
-    "department": "Computer Science",
-    "student_id": "2021CS042"
-  },
-  "distance": 0.23
-}
-
-# Step 2: Get full timeline for identified person
-curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08"
-```
-
-#### 2. Activity Monitoring Workflow
-
-```bash
-# Step 1: Search for entity
-curl "http://localhost:8000/api/entities/?q=alice"
-
-# Step 2: Get detailed profile with last seen
-curl "http://localhost:8000/api/entities/e7f8g9h0/"
-
-# Response
-{
-  "entity_id": "e7f8g9h0",
-  "name": "Alice Johnson",
-  "last_seen": "2024-10-08T14:30:00Z"
-}
-
-# Step 3: Get daily summary
-curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08"
-
-# Step 4: Predict next location
-curl -X POST "http://localhost:8000/api/predict/" \
+# Login to get tokens
+curl -X POST "http://localhost:8000/users/token/" \
   -H "Content-Type: application/json" \
-  -d '{"entity_id": "e7f8g9h0"}'
-```
-
-#### 3. Alert System Workflow
-
-```bash
-# Get all entities inactive for 24+ hours
-curl "http://localhost:8000/api/alerts/?hours=24"
-
-# Response
-{
-  "alerts": [
-    {
-      "entity_id": "abc123",
-      "name": "John Doe",
-      "email": "john@university.edu",
-      "last_seen": "2024-10-06T10:00:00Z",
-      "alert": "No observation for > 24 hours"
-    }
-  ],
-  "count": 1
-}
-```
-
----
-
-
-
-## Support & Contact
-
-- **Issues**: Create an issue in the repository
-- **Email**: [iamnitishsah12@gmail.com]
-
----
-
-## Acknowledgments
-
-- **FaceNet**: For face recognition model
-- **Google Gemini**: For AI summarization
-- **Supabase**: For PostgreSQL hosting with pgvector
-- **Django Community**: For excellent framework and documentation
-
----
-
-**Last Updated**: October 2024
-
-**Version**: 1.0.0
+  -d '{
+    "email": "test@university.edu
