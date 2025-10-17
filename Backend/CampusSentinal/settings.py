@@ -2,9 +2,9 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv()
 
 SECRET_KEY = 'django-insecure-%#i!3lc^3)569zo=igcrj!23&cvn3j&1&*x#2ki1ja#vq!9z$z'
 
@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    'user',
+    'users',
     'pgvector',
     'corsheaders',
     'api',
@@ -95,7 +95,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "user.User"
+AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
