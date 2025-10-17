@@ -1,15 +1,13 @@
 from django.contrib.auth import authenticate
-from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer
-
+from rest_framework import status
 
 def get_tokens_for_user(User):
     refresh = RefreshToken.for_user(User)
-    print(refresh)
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token)
@@ -49,19 +47,28 @@ class LoginView(APIView):
         return Response({"user": user_data, "tokens": tokens}, status=status.HTTP_200_OK)
 
 
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+# class LogoutView(APIView):
+#     permission_classes = []
+#
+#     def post(self, request):
+#         auth_header = request.headers.get("Authorization")
+#
+#         if not auth_header:
+#             return Response({"detail": "Authorization header missing."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         if not auth_header.startswith("Bearer "):
+#             return Response({"detail": "Invalid Authorization header format."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         refresh_token = auth_header.split(" ")[1]
+#
+#         try:
+#             token = RefreshToken(refresh_token)
+#             token.blacklist()
+#         except Exception:
+#             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
 
-    def post(self, request):
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return Response({"detail": "Refresh token required."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-        except Exception:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
 
 
 class UserProfileView(APIView):

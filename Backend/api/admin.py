@@ -219,10 +219,8 @@ class FaceEmbeddingAdmin(admin.ModelAdmin):
     readonly_fields = ()
 
     def embedding_preview(self, obj):
-        # Keep preview brief; embedding can be large. If None, show placeholder.
         if not obj.embedding:
             return "(no embedding)"
-        # obj.embedding may be a list-like; show first 6 values to give an idea.
         try:
             vals = list(obj.embedding)[:6]
             return "[" + ", ".join(f"{v:.3f}" for v in vals) + ", ...]"
