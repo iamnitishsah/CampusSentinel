@@ -81,7 +81,7 @@ class UserProfileView(APIView):
 
     def patch(self, request):
         user = request.user
-        allowed = ("full_name", "phone_number")
+        allowed = ("full_name", "email")
         updated = False
         for field in allowed:
             if field in request.data:
