@@ -1,9 +1,8 @@
-"use client"; // Must be a client component to use hooks
+"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useAuth } from "./context/authContext";
-import Landing from "./pages/landing/page";
+import { useAuth } from "../context/authContext";
 
 const FullPageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -11,24 +10,36 @@ const FullPageLoader = () => (
   </div>
 );
 
-export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function ProtectedRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { isAuthenticated, isLoading } = useAuth(); 
   const router = useRouter();
 
   useEffect(() => {
+
     if (isLoading) {
       return;
     }
-    if (isAuthenticated) {
-      router.replace("/pages/dashboard");
+
+   
+    if (!isAuthenticated) {
+
+      router.replace("/pages/landing");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router]); 
 
   if (isLoading) {
     return <FullPageLoader />;
   }
-  if (!isAuthenticated) {
-    return <Landing />;
+
+
+  if (isAuthenticated) {
+    return children;
   }
+
+
   return null;
 }

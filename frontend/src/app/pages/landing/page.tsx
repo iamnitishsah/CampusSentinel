@@ -3,7 +3,7 @@
 import { Shield, Eye, Brain, Search, Lock, Activity, ChevronRight, Menu, X, Wifi, Camera, CreditCard, Calendar, Users, MapPin, Clock, TrendingUp, FileText, Zap, Database, Cpu, GitBranch, Mail, Github, Linkedin, CheckCircle, ArrowRight } from "lucide-react";
 import { useState } from "react";
 
-export default function Home() {
+export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [email, setEmail] = useState("");
 
@@ -57,7 +57,7 @@ export default function Home() {
               </a>
             </nav>
 
-            {/* Mobile Menu Button */}
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
@@ -67,7 +67,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/50">
             <nav className="px-4 py-4 space-y-3">
@@ -97,7 +97,7 @@ export default function Home() {
         )}
       </header>
 
-      {/* Hero Section */}
+
       <section className="pt-32 sm:pt-40 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full mb-8">
@@ -131,7 +131,7 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Stats Section */}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-20">
             <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
               <div className="text-3xl font-bold text-blue-400 mb-2">95%</div>
@@ -153,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Core Features Section */}
+
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -166,7 +166,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Feature 1 */}
+
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:border-blue-500/50 transition-all">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-lg flex-shrink-0">
@@ -185,7 +185,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Feature 2 */}
+    
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:border-cyan-500/50 transition-all">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-cyan-500 to-blue-500 p-3 rounded-lg flex-shrink-0">
@@ -223,7 +223,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Feature 4 */}
+
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:border-purple-500/50 transition-all">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-lg flex-shrink-0">
@@ -242,7 +242,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Feature 5 */}
+
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:border-orange-500/50 transition-all">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-lg flex-shrink-0">
@@ -261,7 +261,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Feature 6 */}
+
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:border-red-500/50 transition-all">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-red-500 to-pink-500 p-3 rounded-lg flex-shrink-0">
@@ -283,7 +283,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Architecture Section */}
+
       <section id="architecture" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -297,7 +297,7 @@ export default function Home() {
 
           <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 sm:p-12">
             <div className="grid md:grid-cols-5 gap-6 items-center">
-              {/* Step 1 */}
+  
               <div className="text-center">
                 <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-4 rounded-xl inline-block mb-4">
                   <Database className="w-8 h-8 text-white" />
@@ -310,7 +310,7 @@ export default function Home() {
                 <ArrowRight className="w-6 h-6 text-slate-600" />
               </div>
 
-              {/* Step 2 */}
+        
               <div className="text-center">
                 <div className="bg-gradient-to-br from-cyan-500 to-blue-500 p-4 rounded-xl inline-block mb-4">
                   <GitBranch className="w-8 h-8 text-white" />
@@ -349,7 +349,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Use Cases Section */}
+
       <section id="use-cases" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -362,7 +362,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Use Case 1 */}
+
             <div className="bg-gradient-to-br from-blue-900/30 to-slate-800/30 border border-blue-700/50 rounded-xl p-8">
               <div className="bg-blue-500/20 p-3 rounded-lg w-fit mb-6">
                 <Shield className="w-8 h-8 text-blue-400" />
@@ -387,7 +387,7 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Use Case 2 */}
+        
             <div className="bg-gradient-to-br from-cyan-900/30 to-slate-800/30 border border-cyan-700/50 rounded-xl p-8">
               <div className="bg-cyan-500/20 p-3 rounded-lg w-fit mb-6">
                 <MapPin className="w-8 h-8 text-cyan-400" />
@@ -412,7 +412,7 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Use Case 3 */}
+
             <div className="bg-gradient-to-br from-green-900/30 to-slate-800/30 border border-green-700/50 rounded-xl p-8">
               <div className="bg-green-500/20 p-3 rounded-lg w-fit mb-6">
                 <Calendar className="w-8 h-8 text-green-400" />
@@ -440,7 +440,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Privacy & Trust Section */}
+
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-8 sm:p-12">
@@ -508,7 +508,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Team Section */}
+
       <section id="team" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/30">
         <div className="max-w-5xl mx-auto text-center">
           <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -537,7 +537,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
+
       <section id="demo" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-2xl p-8 sm:p-12 text-center">
@@ -564,7 +564,7 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Newsletter Signup */}
+    
             <div className="max-w-md mx-auto">
               <p className="text-sm text-slate-400 mb-4">Stay updated with the latest features</p>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-3">
@@ -588,11 +588,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+ 
       <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-900/50 border-t border-slate-800/50">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
-            {/* Brand */}
+         
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg">
@@ -616,7 +616,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Product */}
+
             <div>
               <h4 className="text-white font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm">

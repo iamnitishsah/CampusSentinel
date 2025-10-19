@@ -1,10 +1,18 @@
 "use client";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useAuth } from "../../context/authContext";
+import { useState, useEffect } from "react"; // <-- Import useEffect
+import { useAuth } from "../../context/authContext"; // Adjust path as needed
 
-export default function Login() {
+// A simple loading spinner component
+const FullPageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-950">
+    <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+  </div>
+);
+
+// This is your original Login component
+function LoginComponent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,7 +24,6 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setIsLoading(true);
     setError("");
 
@@ -31,18 +38,12 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
-        // console.log("Login response data:", data);
-        // console.log(data.tokens.access);
-        // console.log(data.tokens.refresh);
         localStorage.setItem("access", data.tokens.access);
         localStorage.setItem("refresh", data.tokens.refresh);
-        // console.log("Login successful. Token stored:", data);
-        login(data.tokens.access);
-        // 2. UPDATED: Redirect immediately after successful login
-        router.push("/pages/dashboard");
+        login(data.tokens.access); // This updates the context
+        router.push("/pages/dashboard"); // Redirect on success
       } else {
         const data = await response.json();
-        // 3. UPDATED: Use the 'detail' key for the error message from Simple JWT
         setError(data.detail || "Invalid email or password");
       }
     } catch {
@@ -52,9 +53,10 @@ export default function Login() {
     }
   };
 
+  // ... (Your full JSX for the login form goes here) ...
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Floating Accent Elements */}
+      {/* ... Floating Accent Elements ... */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div
@@ -66,7 +68,6 @@ export default function Login() {
           style={{ animationDelay: "2s" }}
         ></div>
       </div>
-
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
@@ -75,8 +76,7 @@ export default function Login() {
             </h2>
             <p className="text-gray-400 text-sm">Sign in to your account</p>
           </div>
-
-          <div className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -85,6 +85,7 @@ export default function Login() {
                 <Mail className="w-4 h-4 mr-2 text-cyan-400" />
                 Email
               </label>
+              {/* ... email input ... */}
               <div className="relative">
                 <input
                   type="email"
@@ -98,7 +99,6 @@ export default function Login() {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <label
                 htmlFor="password"
@@ -107,6 +107,7 @@ export default function Login() {
                 <Lock className="w-4 h-4 mr-2 text-emerald-400" />
                 Password
               </label>
+              {/* ... password input ... */}
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -131,15 +132,13 @@ export default function Login() {
                 </button>
               </div>
             </div>
-
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm text-center">
                 {error}
               </div>
             )}
-
             <button
-              onClick={handleLogin}
+              type="submit" // <-- Changed to type="submit"
               disabled={isLoading}
               className="w-full bg-gradient-to-t from-cyan-500 to-blue-900 text-white font-semibold py-3 px-6 rounded-xl hover:from-cyan-600 hover:to-blue-950 cursor-pointer focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50  flex items-center justify-center"
             >
@@ -152,14 +151,13 @@ export default function Login() {
                 </>
               )}
             </button>
-          </div>
-
+          </form>
+          {/* ... other buttons ... */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-700"></div>
             </div>
           </div>
-
           <button
             onClick={() => router.push("/auth/signup")}
             className="w-full bg-gray-800/50 border-2 cursor-pointer border-gray-600 text-gray-300 font-semibold py-3 px-6 rounded-xl hover:bg-gray-700/50 hover:border-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-300 flex items-center justify-center group"
@@ -174,4 +172,29 @@ export default function Login() {
       </div>
     </div>
   );
+}
+
+// This is the new Page component that wraps your login logic
+export default function LoginPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return; // Wait for auth check
+    if (isAuthenticated) {
+      router.replace("/pages/dashboard"); // Redirect if already logged in
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return <FullPageLoader />; // Show loader while checking auth
+  }
+
+  // If not authenticated, show the login page
+  if (!isAuthenticated) {
+    return <LoginComponent />;
+  }
+
+  // If authenticated, return null while redirecting
+  return null;
 }

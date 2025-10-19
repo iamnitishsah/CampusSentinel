@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isLoading: boolean; 
   login: (access: string) => void;
   logout: () => void;
 }
@@ -11,10 +12,18 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("access");
-    setIsAuthenticated(!!accessToken);
+    try {
+      const accessToken = localStorage.getItem("access");
+      setIsAuthenticated(!!accessToken);
+    } catch (error) {
+      console.error("Error reading auth token:", error);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false); 
+    }
   }, []);
 
   const login = (access: string) => {
@@ -28,7 +37,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, login, logout, isLoading }} 
+    >
       {children}
     </AuthContext.Provider>
   );
