@@ -1,9 +1,10 @@
-import Login from "./auth/login/page";
+import Landing from './pages/landing/page';
+import ProtectedRoute from './components/protectedRoute';
 
 export default function Home() {
     return (
-        <div>
-            <Login />
-        </div>
+        <ProtectedRoute>
+            <Landing />
+        </ProtectedRoute>
     );
 }

@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 function useDebounce(value: string, delay: number) {
@@ -56,7 +57,14 @@ interface Face {
   face_id?: string;
 }
 
+interface User {
+  full_name: string;
+  email: string;
+}
+
 export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [search, setSearch] = useState("");
@@ -67,6 +75,7 @@ export default function DashboardPage() {
   const [faceError, setFaceError] = useState<string | null>(null);
   const [alertsSidebarOpen, setAlertsSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -76,12 +85,12 @@ export default function DashboardPage() {
       const url = q
         ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
         : "http://localhost:8000/api/profiles/";
-        
+
       const res = await fetch(url);
 
       if (res.ok) {
         const data = await res.json();
-                const sortedData = [...data].sort((a, b) =>
+        const sortedData = [...data].sort((a, b) =>
           a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
         );
 
@@ -114,6 +123,41 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchUserProfile = async () => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/users/me/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data.user.full_name);
+        setUser({ full_name: data.user.full_name, email: data.user.email });
+        console.log(data.user.full_name);
+      } else {
+        setError("Unauthorized. Please log in.");
+      }
+    } catch {
+      setError("Error fetching user profile");
+    }
+  };
+
+  const handleLogout = async () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    router.push("/pages/landing");
+  };
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (token) fetchUserProfile();
+  }, []);
+
   useEffect(() => {
     fetchEntities(debouncedSearch);
   }, [debouncedSearch, fetchEntities]);
@@ -138,7 +182,7 @@ export default function DashboardPage() {
         const data = await res.json();
         console.log("API Response Data:", data);
 
-        const profile = data.profile;
+        const { profile } = data;
 
         const entityData: Entity = {
           entity_id: profile.entity_id,
@@ -162,45 +206,83 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-40">
-        <div className=" mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-white font-serif">
-                  Campus Sentinel
-                </h1>
-                <p className="text-xs text-slate-400 hidden sm:block">
-                  Admin Dashboard
-                </p>
-              </div>
+         <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-40">
+      <div className="mx-auto px-4 max-w-7xl">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg">
+              <Shield className="w-6 h-6 text-white" />
             </div>
-
-            <div className="flex items-center gap-2 sm:gap-4">
-              <button
-                onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
-                className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors cursor-pointer"
-              >
-                <Bell className="w-5 h-5" />
-                {alerts.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {alerts.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors cursor-pointer"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-white font-serif">
+                Campus Sentinel
+              </h1>
+              <p className="text-xs text-slate-400 hidden sm:block">
+                Admin Dashboard
+              </p>
             </div>
           </div>
+
+          {/* User Info Section */}
+          <div className="hidden md:flex flex-col items-end gap-1">
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <div className="text-sm text-white font-medium">{user?.full_name}</div>
+            <div className="text-xs text-slate-400">{user?.email}</div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden md:block px-4 py-2 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors"
+            >
+              Logout
+            </button>
+
+            {/* Alerts Button */}
+            <button
+              onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
+              className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+            >
+              <Bell className="w-5 h-5 text-slate-300" />
+              {alerts.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  {alerts.length}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+            >
+              <Menu className="w-5 h-5 text-slate-300" />
+            </button>
+          </div>
         </div>
-      </header>
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-slate-800/50 bg-slate-900/95 backdrop-blur-xl">
+          <div className="px-4 py-4 space-y-3">
+            <div className="flex flex-col gap-1 pb-3 border-b border-slate-800/50">
+              <div className="text-sm text-white font-medium">{user?.full_name}</div>
+              <div className="text-xs text-slate-400">{user?.email}</div>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </header>
 
       <div
         className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 transform transition-transform duration-300 z-50 ${
@@ -279,9 +361,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Total Entities</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {7000}
-                </p>
+                <p className="text-2xl font-bold text-white mt-1">{7000}</p>
               </div>
               <div className="bg-blue-500/10 p-3 rounded-lg">
                 <User className="w-6 h-6 text-blue-500" />
@@ -307,9 +387,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Face Enrolled</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {5000}
-                </p>
+                <p className="text-2xl font-bold text-white mt-1">{5000}</p>
               </div>
               <div className="bg-cyan-500/10 p-3 rounded-lg">
                 <Eye className="w-6 h-6 text-cyan-500" />
