@@ -17,6 +17,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 ALLOWED_HOSTS = []
 
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

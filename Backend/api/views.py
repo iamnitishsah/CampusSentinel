@@ -15,14 +15,14 @@ from .explanation import get_prediction_explanation
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = models.Profile.objects.order_by('entity_id')[:100]
     serializer_class = serializers.ProfileSerializer
     lookup_field = 'entity_id'
 
 
 class EntitySearchAPIView(generics.ListAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.ProfileSerializer
 
     def get_queryset(self):
@@ -36,7 +36,7 @@ class EntitySearchAPIView(generics.ListAPIView):
 
 
 class ProfileDetailAPIView(generics.RetrieveAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.ProfileSerializer
     lookup_field = "entity_id"
     queryset = models.Profile.objects.all()
@@ -50,7 +50,7 @@ class ProfileDetailAPIView(generics.RetrieveAPIView):
 
 
 class AlertsListAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         try:
             threshold_hours = int(request.query_params.get("hours", 12))
@@ -68,7 +68,7 @@ class AlertsListAPIView(APIView):
 
 
 class TimelineDetailAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     @async_to_sync
     async def get(self, request, entity_id):
         if not await sync_to_async(models.Profile.objects.filter(entity_id=entity_id).exists)():
@@ -125,7 +125,7 @@ class TimelineDetailAPIView(APIView):
 
 
 class FaceSearchAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         serializer = serializers.FaceSearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -147,7 +147,7 @@ class FaceSearchAPIView(APIView):
 
 
 class PredictionAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, *args, **kwargs):
         entity_id = request.data.get('entity_id')
         if not entity_id:
