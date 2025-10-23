@@ -2,20 +2,22 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-%#i!3lc^3)569zo=igcrj!23&cvn3j&1&*x#2ki1ja#vq!9z$z'
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-ALLOWED_HOSTS = []
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
@@ -65,7 +67,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CampusSentinal.wsgi.application'
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -74,17 +75,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
-
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.getenv("DATABASE_URL"),
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
 
 DATABASES = {
     'default': {
@@ -100,39 +90,25 @@ DATABASES = {
 AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Asia/Kolkata'
-
 USE_I18N = True
-
 USE_TZ = True
 
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
