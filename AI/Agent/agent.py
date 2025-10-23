@@ -33,7 +33,7 @@ model = ChatGoogleGenerativeAI(
 #     raise ValueError("OPENAI_API_KEY is required in env")
 #
 # model = ChatOpenAI(
-#     model="gpt-4.0",
+#     model="gpt-4o-mini",
 #     temperature=0,
 #     api_key=api_key
 # )

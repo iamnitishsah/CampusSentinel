@@ -5,18 +5,16 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from datetime import datetime
 from dotenv import load_dotenv
-from typing import Optional  # <-- IMPORT OPTIONAL
+from typing import Optional
 
-# Import the agent app and login function from your existing files
 from agent import app
 from tools import login
 from langchain_core.messages import HumanMessage
 
 
-# Define the request model
 class Query(BaseModel):
     message: str
-    session_id: Optional[str] = None  # <-- USE THIS SYNTAX FOR OPTIONAL
+    session_id: Optional[str] = None
 
 
 @asynccontextmanager
@@ -25,11 +23,9 @@ async def lifespan(app: FastAPI):
     Asynchronous context manager for FastAPI lifespan events.
     This will run the login logic on startup.
     """
-    # Load .env variables just like in main.py
     load_dotenv()
     print("Loading environment variables...")
 
-    # Perform initial login from tools.py
     email = os.getenv("AGENT_EMAIL")
     password = os.getenv("AGENT_PASSWORD")
 
@@ -42,19 +38,15 @@ async def lifespan(app: FastAPI):
 
     if "error" in result:
         print(f"FATAL: Login Failed: {result['error']}")
-        # Stop the server startup if login fails
         raise Exception(f"Login Failed: {result['error']}")
 
     print(f"Login successful: {result['status']}")
 
-    # Yield control back to FastAPI
     yield
 
-    # Code here would run on shutdown
     print("Server shutting down.")
 
 
-# Initialize the FastAPI app with the lifespan manager
 fastapi_app = FastAPI(lifespan=lifespan)
 
 
@@ -63,19 +55,13 @@ async def chat_endpoint(query: Query):
     """
     Main chat endpoint to interact with the agent.
     """
-    # Use provided session_id or create a new one for memory
-    # The agent's prompt requires memory to handle follow-ups
     thread_id = query.session_id or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
     config = {"configurable": {"thread_id": thread_id}}
 
-    # Define the input for the agent
     inputs = {"messages": [HumanMessage(content=query.message)]}
 
     final_answer = ""
 
-    # Stream the response to get the *final* answer
-    # We iterate through events until we find the last 'agent' message
-    # that is not a tool call.
     try:
         for event in app.stream(inputs, config):
             for key, value in event.items():
@@ -94,11 +80,9 @@ async def chat_endpoint(query: Query):
                         elif isinstance(final_answer, dict):
                             final_answer = str(final_answer)
 
-        # Return the final answer and the session_id used
         return {"response": final_answer, "session_id": thread_id}
 
     except Exception as e:
-        # Handle any errors during agent invocation
         return {"error": str(e), "session_id": thread_id}
 
 
