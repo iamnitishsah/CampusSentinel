@@ -34,6 +34,7 @@ pgvector==0.4.1
 pi==0.1.2
 proto-plus==1.26.1
 protobuf==5.29.5
+psycopg2==2.9.11
 psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
