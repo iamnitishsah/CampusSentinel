@@ -1,17 +1,15 @@
 "use client";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react"; // <-- Import useEffect
-import { useAuth } from "../../context/authContext"; // Adjust path as needed
+import { useState, useEffect } from "react"; 
+import { useAuth } from "../../context/authContext"; 
 
-// A simple loading spinner component
 const FullPageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-950">
     <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
   </div>
 );
 
-// This is your original Login component
 function LoginComponent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

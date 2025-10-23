@@ -1,5 +1,6 @@
 "use client";
 
+import Chatbot from "@/app/components/chatbot/page";
 import {
   AlertTriangle,
   Bell,
@@ -67,8 +68,6 @@ interface User {
   email: string;
 }
 
-
-
 function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +84,6 @@ function Dashboard() {
   const [alertsCount, setAlertsCount] = useState(0);
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -145,15 +143,22 @@ function Dashboard() {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (response.ok) {
         const data = await response.json();
-        console.log(data.user.full_name);
-        setUser({ full_name: data.user.full_name, email: data.user.email });
-        console.log(data.user.full_name);
+        const userInfo = {
+          full_name: data.user.full_name,
+          email: data.user.email,
+        };
+        setUser(userInfo);
+
+        // ✅ Save user details to localStorage
+        localStorage.setItem("user", JSON.stringify(userInfo));
       } else {
         setError("Unauthorized. Please log in.");
       }
-    } catch {
+    } catch (err) {
+      console.error("Error fetching user profile:", err);
       setError("Error fetching user profile");
     }
   };
@@ -164,6 +169,11 @@ function Dashboard() {
     router.push("/pages/landing");
   };
   useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+
     const token = localStorage.getItem("access");
     if (token) fetchUserProfile();
   }, []);
@@ -219,7 +229,6 @@ function Dashboard() {
       <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50 shadow-lg shadow-black/20">
         <div className="mx-auto px-4 sm:px-6 lg:px-8 lg:py-3">
           <div className="flex items-center justify-between h-16">
-            {/* Logo Section */}
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
                 <Shield className="w-6 h-6 text-white" />
@@ -233,10 +242,7 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-
-            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-4">
-              {/* Alerts Button */}
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
                 className="relative p-2.5 hover:bg-slate-800/60 rounded-xl transition-all duration-200 group"
@@ -249,19 +255,13 @@ function Dashboard() {
                   </span>
                 )}
               </button>
-
-              {/* Help Button */}
               <button
                 className="p-2.5 hover:bg-slate-800/60 rounded-xl transition-all duration-200 group"
                 aria-label="Help"
               >
                 <HelpCircle className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
               </button>
-
-              {/* Divider */}
               <div className="h-8 w-px bg-slate-700/50" />
-
-              {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -272,7 +272,6 @@ function Dashboard() {
                       <span className="text-sm font-medium text-white">
                         {user?.full_name}
                       </span>
-                      
                     </div>
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold shadow-lg shadow-blue-500/30">
                       {user?.full_name
@@ -287,8 +286,6 @@ function Dashboard() {
                     />
                   </div>
                 </button>
-
-                {/* User Dropdown Menu */}
                 {userMenuOpen && (
                   <>
                     <div
@@ -296,7 +293,6 @@ function Dashboard() {
                       onClick={() => setUserMenuOpen(false)}
                     />
                     <div className="absolute right-0 mt-2 w-72 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
-                      {/* User Info Section */}
                       <div className="p-4 border-b border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30">
@@ -312,12 +308,10 @@ function Dashboard() {
                             <p className="text-xs text-slate-400 truncate">
                               {user?.email}
                             </p>
-                           
                           </div>
                         </div>
                       </div>
 
-                      {/* Menu Items */}
                       <div className="py-2">
                         <button className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700/50 transition-colors flex items-center gap-3 group">
                           <User className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
@@ -329,7 +323,6 @@ function Dashboard() {
                         </button>
                       </div>
 
-                      {/* Logout Section */}
                       <div className="border-t border-slate-700/50 py-2">
                         <button
                           onClick={handleLogout}
@@ -345,7 +338,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Mobile Menu Button */}
             <div className="flex items-center gap-2 lg:hidden">
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
@@ -371,7 +363,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <>
             <div
@@ -380,7 +371,6 @@ function Dashboard() {
             />
             <div className="lg:hidden absolute top-full left-0 right-0 bg-slate-900/98 backdrop-blur-xl border-b border-slate-700/50 shadow-2xl shadow-black/40 z-50">
               <div className="px-4 py-4 space-y-1">
-                {/* User Info in Mobile */}
                 <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl mb-3">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold shadow-lg">
                     {user?.full_name
@@ -757,6 +747,9 @@ function Dashboard() {
               </table>
             </div>
           )}
+        </div>
+        <div>
+          <Chatbot />
         </div>
       </main>
     </div>
