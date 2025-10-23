@@ -5,17 +5,23 @@ import {
   Bell,
   Briefcase,
   Building2,
+  ChevronDown,
   ChevronRight,
   Eye,
+  HelpCircle,
+  LogOut,
   Menu,
   Search,
+  Settings,
   Shield,
   Upload,
   User,
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import ProtectedRoute from "../../components/protectedRoute";
 
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -56,7 +62,16 @@ interface Face {
   face_id?: string;
 }
 
-export default function DashboardPage() {
+interface User {
+  full_name: string;
+  email: string;
+}
+
+
+
+function Dashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [search, setSearch] = useState("");
@@ -67,6 +82,10 @@ export default function DashboardPage() {
   const [faceError, setFaceError] = useState<string | null>(null);
   const [alertsSidebarOpen, setAlertsSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [alertsCount, setAlertsCount] = useState(0);
+  const router = useRouter();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -76,12 +95,12 @@ export default function DashboardPage() {
       const url = q
         ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
         : "http://localhost:8000/api/profiles/";
-        
+
       const res = await fetch(url);
 
       if (res.ok) {
         const data = await res.json();
-                const sortedData = [...data].sort((a, b) =>
+        const sortedData = [...data].sort((a, b) =>
           a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
         );
 
@@ -114,6 +133,41 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchUserProfile = async () => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/users/me/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data.user.full_name);
+        setUser({ full_name: data.user.full_name, email: data.user.email });
+        console.log(data.user.full_name);
+      } else {
+        setError("Unauthorized. Please log in.");
+      }
+    } catch {
+      setError("Error fetching user profile");
+    }
+  };
+
+  const handleLogout = async () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    router.push("/pages/landing");
+  };
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (token) fetchUserProfile();
+  }, []);
+
   useEffect(() => {
     fetchEntities(debouncedSearch);
   }, [debouncedSearch, fetchEntities]);
@@ -138,7 +192,7 @@ export default function DashboardPage() {
         const data = await res.json();
         console.log("API Response Data:", data);
 
-        const profile = data.profile;
+        const { profile } = data;
 
         const entityData: Entity = {
           entity_id: profile.entity_id,
@@ -162,46 +216,215 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-40">
-        <div className=" mx-auto px-4">
+      <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50 shadow-lg shadow-black/20">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 lg:py-3">
           <div className="flex items-center justify-between h-16">
+            {/* Logo Section */}
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-lg">
+              <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
                 <Shield className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-white font-serif">
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-white tracking-tight">
                   Campus Sentinel
                 </h1>
                 <p className="text-xs text-slate-400 hidden sm:block">
-                  Admin Dashboard
+                  Security Management System
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-4">
+              {/* Alerts Button */}
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
-                className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors cursor-pointer"
+                className="relative p-2.5 hover:bg-slate-800/60 rounded-xl transition-all duration-200 group"
+                aria-label="View alerts"
               >
-                <Bell className="w-5 h-5" />
-                {alerts.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {alerts.length}
+                <Bell className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+                {alertsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg shadow-red-500/50 animate-pulse">
+                    {alertsCount}
                   </span>
                 )}
               </button>
+
+              {/* Help Button */}
+              <button
+                className="p-2.5 hover:bg-slate-800/60 rounded-xl transition-all duration-200 group"
+                aria-label="Help"
+              >
+                <HelpCircle className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+              </button>
+
+              {/* Divider */}
+              <div className="h-8 w-px bg-slate-700/50" />
+
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-800/60 rounded-xl transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="hidden xl:flex flex-col items-end">
+                      <span className="text-sm font-medium text-white">
+                        {user?.full_name}
+                      </span>
+                      
+                    </div>
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold shadow-lg shadow-blue-500/30">
+                      {user?.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                        userMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {userMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-72 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
+                      {/* User Info Section */}
+                      <div className="p-4 border-b border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30">
+                            {user?.full_name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {user?.full_name}
+                            </p>
+                            <p className="text-xs text-slate-400 truncate">
+                              {user?.email}
+                            </p>
+                           
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div className="py-2">
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700/50 transition-colors flex items-center gap-3 group">
+                          <User className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                          <span>Profile Settings</span>
+                        </button>
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700/50 transition-colors flex items-center gap-3 group">
+                          <Settings className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                          <span>System Settings</span>
+                        </button>
+                      </div>
+
+                      {/* Logout Section */}
+                      <div className="border-t border-slate-700/50 py-2">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-950/30 transition-colors flex items-center gap-3 group"
+                        >
+                          <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <button
+                onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
+                className="relative p-2 hover:bg-slate-800/60 rounded-lg transition-all"
+                aria-label="View alerts"
+              >
+                <Bell className="w-5 h-5 text-slate-300" />
+                {alertsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {alertsCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors cursor-pointer"
+                className="p-2 hover:bg-slate-800/60 rounded-lg transition-all"
+                aria-label="Menu"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-6 h-6 text-slate-300" />
               </button>
             </div>
           </div>
         </div>
-      </header>
 
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="lg:hidden absolute top-full left-0 right-0 bg-slate-900/98 backdrop-blur-xl border-b border-slate-700/50 shadow-2xl shadow-black/40 z-50">
+              <div className="px-4 py-4 space-y-1">
+                {/* User Info in Mobile */}
+                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold shadow-lg">
+                    {user?.full_name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {user?.full_name}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                </div>
+
+                <button className="w-full px-4 py-3 text-left text-sm text-slate-200 hover:bg-slate-800/60 rounded-lg transition-colors flex items-center gap-3">
+                  <User className="w-4 h-4 text-slate-400" />
+                  <span>Profile Settings</span>
+                </button>
+                <button className="w-full px-4 py-3 text-left text-sm text-slate-200 hover:bg-slate-800/60 rounded-lg transition-colors flex items-center gap-3">
+                  <Settings className="w-4 h-4 text-slate-400" />
+                  <span>System Settings</span>
+                </button>
+                <button className="w-full px-4 py-3 text-left text-sm text-slate-200 hover:bg-slate-800/60 rounded-lg transition-colors flex items-center gap-3">
+                  <HelpCircle className="w-4 h-4 text-slate-400" />
+                  <span>Help & Support</span>
+                </button>
+
+                <div className="pt-2 mt-2 border-t border-slate-700/50">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-950/30 rounded-lg transition-colors flex items-center gap-3"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </header>
       <div
         className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 transform transition-transform duration-300 z-50 ${
           alertsSidebarOpen ? "translate-x-0" : "translate-x-full"
@@ -279,9 +502,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Total Entities</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {7000}
-                </p>
+                <p className="text-2xl font-bold text-white mt-1">{7000}</p>
               </div>
               <div className="bg-blue-500/10 p-3 rounded-lg">
                 <User className="w-6 h-6 text-blue-500" />
@@ -307,9 +528,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Face Enrolled</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {5000}
-                </p>
+                <p className="text-2xl font-bold text-white mt-1">{5000}</p>
               </div>
               <div className="bg-cyan-500/10 p-3 rounded-lg">
                 <Eye className="w-6 h-6 text-cyan-500" />
@@ -541,5 +760,13 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
   );
 }

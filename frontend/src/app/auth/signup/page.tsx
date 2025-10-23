@@ -12,13 +12,11 @@ import { useState } from "react";
 
 const Signup = () => {
     const router = useRouter();
-    // 1. UPDATED: Changed state to match backend model (first_name, last_name)
     const [formData, setFormData] = useState({
         email: "",
         password: "",
         password_confirm: "",
-        first_name: "",
-        last_name: "",
+        full_name:"",
     });
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -37,18 +35,15 @@ const Signup = () => {
         }
 
         try {
-            // 2. UPDATED: Changed API endpoint to '/register/'
             const response = await fetch("http://localhost:8000/users/register/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                // 3. UPDATED: Sending payload that matches the UserCreateSerializer
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
+                    full_name: formData.full_name,
                 }),
             });
 
@@ -56,7 +51,6 @@ const Signup = () => {
                 router.push("/auth/login");
             } else {
                 const data = await response.json();
-                // A simple way to display multiple errors from the backend
                 const errorMessages = Object.entries(data)
                     .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
                     .join('; ');
@@ -86,42 +80,23 @@ const Signup = () => {
                 <div className="bg-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl p-8">
                     <form className="space-y-6" onSubmit={handleFormSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* 4. UPDATED: Changed 'full_name' to 'first_name' and 'last_name' inputs */}
                             <div className="space-y-2">
                                 <label
-                                    htmlFor="first_name"
+                                    htmlFor="name"
                                     className="text-sm font-medium text-gray-300 flex items-center"
                                 >
                                     <User className="w-4 h-4 mr-2 text-emerald-400" />
-                                    First Name
+                                     Name
                                 </label>
                                 <input
                                     type="text"
-                                    id="first_name"
-                                    name="first_name"
-                                    value={formData.first_name}
+                                    id="full_name"
+                                    name="full_name"
+                                    required
+                                    value={formData.full_name}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 bg-gray-800/50 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300 backdrop-blur-sm"
-                                    placeholder="Enter your First Name"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label
-                                    htmlFor="last_name"
-                                    className="text-sm font-medium text-gray-300 flex items-center"
-                                >
-                                    <User className="w-4 h-4 mr-2 text-emerald-400" />
-                                    Last Name
-                                </label>
-                                <input
-                                    type="text"
-                                    id="last_name"
-                                    name="last_name"
-                                    value={formData.last_name}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-gray-800/50 border-2 border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300 backdrop-blur-sm"
-                                    placeholder="Enter your Last Name"
+                                    placeholder="Enter your Name"
                                 />
                             </div>
 
