@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from dotenv import load_dotenv
 from typing import Optional
@@ -48,6 +49,20 @@ async def lifespan(app: FastAPI):
 
 
 fastapi_app = FastAPI(lifespan=lifespan)
+# --- ADD THIS BLOCK TO FIX THE CORS ERROR ---
+# Note: Adjust allow_origins if your frontend is not on localhost:3000
+origins = [
+    "http://localhost:3000",  # Default for Create React App / Next.js
+    "http://localhost",
+]
+
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 
 @fastapi_app.post("/chat")
