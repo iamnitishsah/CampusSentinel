@@ -81,53 +81,69 @@ export default function EntityPage() {
         }
     };
 
-    useEffect(() => {
-        const fetchAll = async () => {
-            if (!entityId || !selectedDate) return;
-            setLoading(true);
-            try {
-                const pRes = await fetch(`http://127.0.0.1:8000/api/entities/${entityId}/`);
-                if (pRes.ok) {
-                    setProfile(await pRes.json());
-                }
+   useEffect(() => {
+  const fetchAll = async () => {
+    if (!entityId || !selectedDate) return;
 
-                const formattedDate = formatDateForAPI(selectedDate);
-                const tRes = await fetch(`http://127.0.0.1:8000/api/entities/${entityId}/timeline/?date=${formattedDate}`);
-                if (tRes.ok) {
-                    const data = await tRes.json();
-                    setTimeline(data.timeline || []);
-                    setSummary(data.summary || "");
-                } else {
-                    setTimeline([]);
-                    setSummary("");
-                }
+    setLoading(true);
 
-                const predictRes = await fetch("http://127.0.0.1:8000/api/predict/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ entity_id: entityId }),
-                });
-                if (predictRes.ok) {
-                    const predictJson = await predictRes.json();
-                    setPredict({
-                        predictedLocation: predictJson.predicted_location,
-                        explanation: predictJson.explanation,
-                        pastActivities: predictJson.past_activities,
-                    });
-                } else {
-                    setPredict(null);
-                }
-            } catch (err) {
-                console.error("Error fetching entity data:", err);
-                setTimeline([]);
-                setSummary("");
-                setPredict(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAll();
-    }, [entityId, selectedDate]);
+    try {
+      const token = localStorage.getItem("access");
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      };
+
+      const pRes = await fetch(`http://127.0.0.1:8000/api/entities/${entityId}/`, {
+        headers: authHeaders,
+      });
+      if (pRes.ok) {
+        setProfile(await pRes.json());
+      }
+
+      const formattedDate = formatDateForAPI(selectedDate);
+      const tRes = await fetch(
+        `http://127.0.0.1:8000/api/entities/${entityId}/timeline/?date=${formattedDate}`,
+        { headers: authHeaders }
+      );
+      if (tRes.ok) {
+        const data = await tRes.json();
+        setTimeline(data.timeline || []);
+        setSummary(data.summary || "");
+      } else {
+        setTimeline([]);
+        setSummary("");
+      }
+
+      const predictRes = await fetch("http://127.0.0.1:8000/api/predict/", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ entity_id: entityId }),
+      });
+      if (predictRes.ok) {
+        const predictJson = await predictRes.json();
+        setPredict({
+          predictedLocation: predictJson.predicted_location,
+          explanation: predictJson.explanation,
+          pastActivities: predictJson.past_activities,
+        });
+      } else {
+        setPredict(null);
+      }
+    } catch (err) {
+      console.error("Error fetching entity data:", err);
+      setTimeline([]);
+      setSummary("");
+      setPredict(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAll();
+}, [entityId, selectedDate]);
+
 
     const getEventIcon = (type: string) => {
         switch (type) {
