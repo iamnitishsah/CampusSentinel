@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "d3-interpolate": "^3.0.1",
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-calendar": "^6.0.0",
     "react-dom": "19.1.0",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.9.4",
     "recharts": "^3.2.1"
   },

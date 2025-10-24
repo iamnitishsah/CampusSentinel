@@ -1,4 +1,4 @@
-"use client"; // Must be a client component to use hooks
+"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -28,7 +28,11 @@ export default function Home() {
     return <FullPageLoader />;
   }
   if (!isAuthenticated) {
-    return <Landing />;
+    return(
+      <>
+      <Landing />
+      </>
+    ) 
   }
   return null;
 }
