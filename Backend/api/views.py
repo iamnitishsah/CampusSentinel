@@ -125,7 +125,7 @@ class TimelineDetailAPIView(APIView):
 
 
 class FaceSearchAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         serializer = serializers.FaceSearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

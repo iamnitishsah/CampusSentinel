@@ -38,7 +38,7 @@ model = ChatGoogleGenerativeAI(
 #     api_key=api_key
 # )
 
-system_prompt = """You are a helpful AI assistant for the Saptang Campus Security system.
+system_prompt = """You are a helpful AI assistant for the CampusSentinal, Campus Security system.
 You are already authenticated and can use your tools directly to help the operator.
 
 Your tasks are:
