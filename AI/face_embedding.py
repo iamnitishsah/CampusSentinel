@@ -1,5 +1,6 @@
 import torch
 import requests
+import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from facenet_pytorch import InceptionResnetV1
@@ -67,3 +68,9 @@ async def identify_and_search(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail=f"Service Unavailable: Could not connect to DRF backend. {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("Starting FastAPI server...")
+    uvicorn.run("face_embedding:app", host="0.0.0.0", port=8001, reload=True)

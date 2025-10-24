@@ -206,6 +206,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+staticfiles/
 Test_Dataset/
 Updated_Dataset/
 
