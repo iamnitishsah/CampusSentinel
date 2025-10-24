@@ -87,59 +87,65 @@ function Dashboard() {
 
   const debouncedSearch = useDebounce(search, 500);
 
-const fetchEntities = useCallback(async (q: string = "") => {
-  setLoading(true);
+  const fetchEntities = useCallback(async (q: string = "") => {
+    setLoading(true);
 
+    try {
+      const token = localStorage.getItem("access");
+
+      const url = q
+        ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
+        : "http://localhost:8000/api/profiles/";
+
+      const res = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const sortedData = [...data].sort((a, b) =>
+          a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
+        );
+        setEntities(sortedData);
+      } else {
+        console.error("Failed to fetch entities:", res.statusText);
+        setEntities([]);
+      }
+    } catch (err) {
+      console.error("Error fetching entities:", err);
+      setEntities([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+ const fetchAlerts = useCallback(async () => {
   try {
     const token = localStorage.getItem("access");
 
-    const url = q
-      ? `http://localhost:8000/api/entities/?q=${encodeURIComponent(q)}`
-      : "http://localhost:8000/api/profiles/";
-
-    const res = await fetch(url, {
+    const res = await fetch("http://localhost:8000/api/alerts/", {
       headers: {
         "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "", // ✅ Add token header
+        Authorization: token ? `Bearer ${token}` : "",
       },
     });
 
     if (res.ok) {
       const data = await res.json();
-      const sortedData = [...data].sort((a, b) =>
-        a.entity_id.localeCompare(b.entity_id, undefined, { numeric: true })
-      );
-      setEntities(sortedData);
+      setAlerts(data.alerts);
     } else {
-      console.error("Failed to fetch entities:", res.statusText);
-      setEntities([]);
+      console.error("Failed to fetch alerts:", res.statusText);
+      setAlerts([]);
     }
   } catch (err) {
-    console.error("Error fetching entities:", err);
-    setEntities([]);
-  } finally {
-    setLoading(false);
+    console.error("Error fetching alerts:", err);
+    setAlerts([]);
   }
 }, []);
 
-
-  const fetchAlerts = useCallback(async () => {
-
-    try {
-       const token = localStorage.getItem("access");
-      const res = await fetch("http://localhost:8000/api/alerts/");
-      if (res.ok) {
-        const data = await res.json();
-        setAlerts(data.alerts);
-      } else {
-        console.error("Failed to fetch alerts:", res.statusText);
-        setAlerts([]);
-      }
-    } catch (err) {
-      console.error("Error fetching alerts:", err);
-      setAlerts([]);
-    }
-  }, []);
 
   const fetchUserProfile = async () => {
     const token = localStorage.getItem("access");
