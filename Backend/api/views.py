@@ -1,8 +1,7 @@
 import time
 import asyncio
 import pandas as pd
-from datetime import time
-from django.db.models.functions import RowNumber
+from datetime import time as time_module
 from rest_framework import generics, status, viewsets
 from django.db.models import Q, Max, F, Window, OuterRef, Subquery
 from asgiref.sync import async_to_sync, sync_to_async
@@ -20,34 +19,35 @@ from . import models
 from .occupancy_predictor import OccupancyPredictor
 from .occupancy_explainer import get_occupancy_explanation
 
-
 SIMULATION_NOW = timezone.make_aware(datetime(2025, 9, 25, 23, 59, 59))
 
 LOCATION_MAX_CAPACITY = {
-    'Admin Lobby': 600,
-    'Auditorium': 300,
-    'Hostel': 2300,
+    'Admin Lobby': 710,
+    'Auditorium': 1360,
+    'Hostel': 5000,
     'LAB_102': 15,
-    'LAB': 25,
-    'Library': 1000,
-    'Seminar Room': 100,
-    'WORKSHOP': 15,
-    'LAB_305': 100,
-    'Gym': 500,
-    'LAB_101': 130,
-    'Cafeteria': 700,
-    'LAB_A2': 8,
-    'LAB_A1': 180,
-    'Main Building': 300,
-    'Faculty Office': 500
+    'LAB': 30,
+    'Library': 2150,
+    'Seminar Room': 1800,
+    'WORKSHOP': 20,
+    'LAB_305': 30,
+    'Gym': 1012,
+    'LAB_101': 40,
+    'Cafeteria': 1360,
+    'LAB_A2': 12,
+    'LAB_A1': 20,
+    'Main Building': 30,
+    'Faculty Office': 650
 }
 
 ACCESS_RULES = {
     'Faculty Office': ['faculty', 'staff'],
     'LAB_305': ['faculty', 'student'],
-    'Hostel': ['student']
+    'Hostel': ['student'],
+    'Admin Lobby': ['faculty', 'staff'],
+    'Main Building': ['faculty', 'staff'],
+    'Library': ['faculty', 'staff', 'student']
 }
-
 
 
 def get_occupancy_status(location_name, predicted_count):
@@ -61,7 +61,6 @@ def get_occupancy_status(location_name, predicted_count):
         return "Underused"
     else:
         return "Normal"
-
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -104,21 +103,18 @@ class AlertsListAPIView(APIView):
 
     def get(self, request):
         all_alerts = []
-        try:
-            hours_param = int(request.query_params.get("hours", 12))
-        except (ValueError, TypeError):
-            hours_param = 12
+        hours_param = 10
 
         gap_threshold = timedelta(hours=hours_param)
-
-        # Get all events ordered by entity and timestamp
+        recent_window_start = SIMULATION_NOW - timedelta(days=4)
         events = models.Event.objects.filter(
-            entity__isnull=False
+            entity__isnull=False,
+            timestamp__lte=SIMULATION_NOW,
+            timestamp__gte=recent_window_start
         ).select_related('entity').order_by('entity_id', 'timestamp').values(
             'entity_id', 'entity__name', 'entity__email', 'timestamp'
         )
 
-        # Group events by entity
         entity_events = {}
         for event in events:
             entity_id = event['entity_id']
@@ -130,31 +126,61 @@ class AlertsListAPIView(APIView):
                 }
             entity_events[entity_id]['timestamps'].append(event['timestamp'])
 
-        # Find gaps for each entity
+        # Missing Person alerts - limit to 10
+        missing_person_alerts = []
         for entity_id, data in entity_events.items():
             timestamps = data['timestamps']
 
-            # Check consecutive timestamps for gaps
             for i in range(len(timestamps) - 1):
                 gap = timestamps[i + 1] - timestamps[i]
+                gap_start = timestamps[i]
+                gap_end = timestamps[i + 1]
 
-                if gap >= gap_threshold:
-                    gap_hours = gap.total_seconds() / 3600
-                    all_alerts.append({
+                actual_gap = gap
+
+                current = gap_start
+                sleeping_hours_to_subtract = timedelta(0)
+
+                while current < gap_end:
+                    next_day = current + timedelta(days=1)
+                    next_midnight = timezone.make_aware(
+                        datetime.combine(current.date() + timedelta(days=1), time_module.min))
+                    next_7am = timezone.make_aware(
+                        datetime.combine(current.date() + timedelta(days=1), time_module(7, 0)))
+
+                    if current < next_midnight < gap_end:
+                        sleep_start = next_midnight
+                        sleep_end = min(next_7am, gap_end)
+
+                        if sleep_end > sleep_start:
+                            sleeping_hours_to_subtract += (sleep_end - sleep_start)
+
+                    current = next_7am if next_7am < gap_end else gap_end
+
+                actual_gap -= sleeping_hours_to_subtract
+
+                if actual_gap >= gap_threshold:
+                    gap_hours = actual_gap.total_seconds() / 3600
+                    total_gap_hours = gap.total_seconds() / 3600
+                    missing_person_alerts.append({
                         "alert_type": "Missing Person",
                         "severity": 10,
-                        "message": f"{data['name']} had no activity for {gap_hours:.1f} hours (from {timestamps[i].strftime('%Y-%m-%d %H:%M')} to {timestamps[i + 1].strftime('%Y-%m-%d %H:%M')}).",
+                        "message": f"{data['name']} had no activity for {gap_hours:.1f} hours (from {timestamps[i].strftime('%Y-%m-%d %H:%M')} to {timestamps[i + 1].strftime('%Y-%m-%d %H:%M')}, excluding sleeping hours).",
                         "details": {
                             "entity_id": str(entity_id),
                             "name": data['name'],
                             "gap_start": timestamps[i],
                             "gap_end": timestamps[i + 1],
-                            "gap_hours": round(gap_hours, 1)
+                            "gap_hours": round(gap_hours, 1),
+                            "total_gap_hours": round(total_gap_hours, 1)
                         },
                         "recommendation": "Investigate unusual absence pattern."
                     })
 
-        # Overcrowding alerts - find all times capacity was exceeded
+        all_alerts.extend(missing_person_alerts[:10])
+
+        # Overcrowding alerts - limit to 10
+        overcrowding_alerts = []
         for location_id, max_capacity in LOCATION_MAX_CAPACITY.items():
             overcrowded = models.OccupancyData.objects.filter(
                 location_id=location_id,
@@ -163,7 +189,7 @@ class AlertsListAPIView(APIView):
 
             for entry in overcrowded:
                 overage_pct = ((entry['count'] - max_capacity) / max_capacity) * 100
-                all_alerts.append({
+                overcrowding_alerts.append({
                     "alert_type": "Overcrowding",
                     "severity": min(8, 5 + int(overage_pct / 20)),
                     "message": f"{location_id} was over capacity by {int(overage_pct)}% at {entry['start_time'].strftime('%Y-%m-%d %H:%M')}.",
@@ -176,7 +202,10 @@ class AlertsListAPIView(APIView):
                     "recommendation": "Monitor area and redirect traffic."
                 })
 
-        # Access violations - find all violations
+        all_alerts.extend(overcrowding_alerts[:10])
+
+        # Access Violation alerts - limit to 10
+        access_violation_alerts = []
         for location, allowed_roles in ACCESS_RULES.items():
             violations = models.Event.objects.filter(
                 location=location,
@@ -184,11 +213,11 @@ class AlertsListAPIView(APIView):
             ).exclude(
                 entity__role__in=allowed_roles
             ).select_related('entity').values(
-                'entity__entity_id', 'entity__name', 'entity__role', 'timestamp'
+                'entity__entity_id', 'entity__name', 'entity__role', 'timestamp', 'location'
             )[:50]
 
             for event in violations:
-                all_alerts.append({
+                access_violation_alerts.append({
                     "alert_type": "Access Violation",
                     "severity": 7,
                     "message": f"{event['entity__name']} ({event['entity__role']}) entered restricted area: {location}.",
@@ -202,12 +231,45 @@ class AlertsListAPIView(APIView):
                     "recommendation": "Verify entity credentials. Dispatch security if necessary."
                 })
 
-        all_alerts.sort(key=lambda x: x['severity'], reverse=True)
-        return Response({"alerts": all_alerts[:100], "count": len(all_alerts)})
+        all_alerts.extend(access_violation_alerts[:10])
 
+        # After Hours Access alerts - limit to 10
+        after_hours_alerts = []
+        after_hours_locations = ['Main Building', 'Library']
+        after_hours_roles = ['staff', 'student']
+
+        after_hours_events = models.Event.objects.filter(
+            location__in=after_hours_locations,
+            entity__role__in=after_hours_roles
+        ).select_related('entity').values(
+            'entity__entity_id', 'entity__name', 'entity__role', 'timestamp', 'location'
+        )
+
+        for event in after_hours_events:
+            event_hour = event['timestamp'].hour
+            if event_hour >= 22 or event_hour < 7:
+                after_hours_alerts.append({
+                    "alert_type": "After Hours Access",
+                    "severity": 6,
+                    "message": f"{event['entity__name']} ({event['entity__role']}) accessed {event['location']} during restricted hours at {event['timestamp'].strftime('%Y-%m-%d %H:%M')}.",
+                    "details": {
+                        "entity_id": str(event['entity__entity_id']),
+                        "name": event['entity__name'],
+                        "role": event['entity__role'],
+                        "location": event['location'],
+                        "timestamp": event['timestamp']
+                    },
+                    "recommendation": "Verify authorization for after-hours access."
+                })
+
+        all_alerts.extend(after_hours_alerts[:10])
+
+        all_alerts.sort(key=lambda x: x['severity'], reverse=True)
+        return Response({"alerts": all_alerts, "count": len(all_alerts)})
 
 class TimelineDetailAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     @async_to_sync
     async def get(self, request, entity_id):
         if not await sync_to_async(models.Profile.objects.filter(entity_id=entity_id).exists)():
@@ -222,8 +284,8 @@ class TimelineDetailAPIView(APIView):
 
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            start_time = timezone.make_aware(datetime.combine(target_date, time.min))
-            end_time = timezone.make_aware(datetime.combine(target_date, time.max))
+            start_time = timezone.make_aware(datetime.combine(target_date, time_module.min))
+            end_time = timezone.make_aware(datetime.combine(target_date, time_module.max))
         except ValueError:
             return Response({"error": "Invalid date format. Please use YYYY-MM-DD."},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -250,6 +312,7 @@ class TimelineDetailAPIView(APIView):
 
                 serializer = serializers.TimelineEventSerializer(ev_qs, many=True)
                 return serializer.data
+
             return await fetch_and_serialize()
 
         summary_result, timeline_result = await asyncio.gather(
@@ -265,6 +328,7 @@ class TimelineDetailAPIView(APIView):
 
 class FaceSearchAPIView(APIView):
     permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         serializer = serializers.FaceSearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -287,6 +351,7 @@ class FaceSearchAPIView(APIView):
 
 class PredictionAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
         entity_id = request.data.get('entity_id')
         if not entity_id:

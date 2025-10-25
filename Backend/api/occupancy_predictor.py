@@ -21,9 +21,6 @@ class OccupancyPredictor:
 
     def _prepare_features(self, df):
         df['start_time'] = pd.to_datetime(df['start_time'])
-
-        if df['start_time'].dt.tz is not None:
-            df['start_time'] = df['start_time'].dt.tz_convert('Asia/Kolkata').dt.tz_localize(None)
         df['year'] = df['start_time'].dt.year
         df['month'] = df['start_time'].dt.month
         df['day'] = df['start_time'].dt.day
@@ -51,11 +48,6 @@ class OccupancyPredictor:
 
     def _create_prediction_features(self, future_time, feature_cols):
         dt = pd.to_datetime(future_time)
-
-        if dt.tzinfo is not None:
-            ist = pytz.timezone('Asia/Kolkata')
-            dt = dt.astimezone(ist).replace(tzinfo=None)
-
         features = {
             'year': dt.year,
             'month': dt.month,
