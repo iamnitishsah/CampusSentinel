@@ -330,7 +330,18 @@ export default function IndividualLocationPage() {
       
       // Ensure the timestamp is in a format the backend expects (ISO 8601 with Z)
       // The backend will handle the necessary timezone conversion internally.
-      const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
+      // const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
+        const datee = new Date(dateTimeString);
+        const futureTimestamp = new Date(
+            Date.UTC(
+                datee.getFullYear(),
+                datee.getMonth(),
+                datee.getDate(),
+                datee.getHours(),
+                datee.getMinutes(),
+                datee.getSeconds()
+            )
+        ).toISOString();
 
       const payload = {
         location_id: locationName,
