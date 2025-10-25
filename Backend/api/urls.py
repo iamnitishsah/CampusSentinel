@@ -13,4 +13,5 @@ urlpatterns = [
     path("entities/<str:entity_id>/timeline/", views.TimelineDetailAPIView.as_view(), name="entity-timeline-detail"),
     path("search/face/", views.FaceSearchAPIView.as_view(), name="face-search"),
     path("predict/", views.PredictionAPIView.as_view(), name="predict-location"),
+    path("forecast/", views.OccupancyAPIView.as_view(), name="forecast-count"),
 ]
