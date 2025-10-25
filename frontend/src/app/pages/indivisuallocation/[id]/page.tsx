@@ -18,30 +18,27 @@ import React, { useCallback, useEffect, useState } from "react";
 import TimePicker from "react-time-picker";
 import { RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from "recharts";
 
-// --- BACKEND-DRIVEN CONFIGURATION (Must match views.py) ---
-// This ensures that the frontend's status calculation aligns with the backend's internal logic.
 const BACKEND_CAPACITIES: Record<string, number> = {
-    'Admin Lobby': 600,
-    'Auditorium': 300,
-    'Hostel': 2300,
+    'Admin Lobby': 710,
+    'Auditorium': 1360,
+    'Hostel': 5000,
     'LAB_102': 15,
-    'LAB': 25,
-    'Library': 1000,
-    'Seminar Room': 100,
-    'WORKSHOP': 15,
-    'LAB_305': 100,
-    'Gym': 500,
-    'LAB_101': 130,
-    'Cafeteria': 700,
-    'LAB_A2': 8,
-    'LAB_A1': 180,
-    'Main Building': 300,
-    'Faculty Office': 500
-};
-const DEFAULT_CAPACITY = 100; // Fallback for unknown locations
-const PREDICTION_INTERVAL_MINS = 15; // Fixed interval to align with FE logic for BE payload
+    'LAB': 30,
+    'Library': 2150,
+    'Seminar Room': 1800,
+    'WORKSHOP': 20,
+    'LAB_305': 30,
+    'Gym': 1012,
+    'LAB_101': 40,
+    'Cafeteria': 1360,
+    'LAB_A2': 12,
+    'LAB_A1': 20,
+    'Main Building': 30,
+    'Faculty Office': 650
+}
+const DEFAULT_CAPACITY = 100; 
+const PREDICTION_INTERVAL_MINS = 15; 
 
-// --- Type Definitions ---
 interface LocationData {
   location_name: string;
   capacity: number;
@@ -97,8 +94,6 @@ const TimeDisplay: React.FC = () => {
 };
 
 
-// --- Occupancy Gauge Chart Components ---
-
 const getStatusColorClass = (status: string): StatusConfig => {
   switch (status) {
     case "Overcrowded":
@@ -118,9 +113,9 @@ const getStatusColorClass = (status: string): StatusConfig => {
     case "Normal":
     default:
       return {
-        text: "text-emerald-400",
-        bg: "bg-emerald-500/10",
-        border: "border-emerald-500/30",
+        text: "text-green-400",
+        bg: "bg-green-500/10",
+        border: "border-green-500/30",
         icon: CheckCircle,
       };
   }
@@ -261,7 +256,6 @@ const getInitialTime = () => {
   };
 };
 
-// --- Main Component ---
 
 export default function IndividualLocationPage() {
   const params = useParams();
@@ -287,16 +281,12 @@ export default function IndividualLocationPage() {
   const [endTime, setEndTime] = useState(initialTimes.endTime);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  // 1. Effect to automatically calculate endTime whenever startTime changes
   useEffect(() => {
-    // The TimePicker returns HH:mm, so we append :00 for consistency
+
     const fullStartTime = startTime.length === 5 ? `${startTime}:00` : startTime; 
     setEndTime(calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS));
   }, [startTime]);
-
-  // 2. Initial Data Fetch: Runs an initial prediction when the page loads
   useEffect(() => {
-    // Check if the location is known, otherwise, show an error.
     if (!BACKEND_CAPACITIES[locationName]) {
         setError(`Location "${locationName}" is not recognized in the backend configuration.`);
         setHasSubmitted(true); // Stop showing initial loading/prompt
@@ -324,24 +314,23 @@ export default function IndividualLocationPage() {
       // Construct End Time for the payload (which is 15 mins after the selected Start Time)
       const fullStartTime = time.length === 5 ? `${time}:00` : time;
       const calculatedEndTime = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
-      
-      // The backend expects the prediction time to be the END of the window (calculatedEndTime)
-      const dateTimeString = `${date}T${calculatedEndTime}`; 
-      
-      // Ensure the timestamp is in a format the backend expects (ISO 8601 with Z)
-      // The backend will handle the necessary timezone conversion internally.
-      // const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
-        const datee = new Date(dateTimeString);
-        const futureTimestamp = new Date(
-            Date.UTC(
-                datee.getFullYear(),
-                datee.getMonth(),
-                datee.getDate(),
-                datee.getHours(),
-                datee.getMinutes(),
-                datee.getSeconds()
-            )
-        ).toISOString();  
+
+
+const dateTimeString = `${date}T${calculatedEndTime}`;
+
+const datee = new Date(dateTimeString);
+const futureTimestamp = new Date(
+  Date.UTC(
+    datee.getFullYear(),
+    datee.getMonth(),
+    datee.getDate(),
+    datee.getHours(),
+    datee.getMinutes(),
+    datee.getSeconds()
+  )
+).toISOString();
+
+
 
       const payload = {
         location_id: locationName,
