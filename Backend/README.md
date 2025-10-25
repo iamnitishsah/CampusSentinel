@@ -4,16 +4,17 @@ Django REST Framework backend for campus surveillance and activity tracking syst
 
 ## Overview
 
-A comprehensive backend system for tracking and analyzing campus entity activities through multiple data sources (WiFi logs, CCTV, card swipes, etc.) with AI-powered location prediction and timeline summarization.
+A comprehensive backend system for tracking and analyzing campus entity activities through multiple data sources (WiFi logs, CCTV, card swipes, etc.) with AI-powered location prediction, occupancy forecasting, and timeline summarization.
 
 ## Features
 
 - **JWT Authentication**: Secure user registration and token-based authentication with refresh tokens
 - **Multi-Source Activity Tracking**: WiFi logs, CCTV frames, card swipes, lab bookings, library checkouts
 - **Face Recognition Integration**: pgvector-based cosine similarity search for face matching
-- **AI-Powered Timeline Summarization**: Google Gemini 2.5 Pro for natural language summaries
+- **AI-Powered Timeline Summarization**: Google Gemini 2.5 Flash for natural language summaries
 - **Location Prediction**: Random Forest ML model for next location prediction
-- **Real-time Alerts**: Configurable inactivity alerts
+- **Occupancy Forecasting**: ML-based predictions for campus location occupancy with AI explanations
+- **Intelligent Alerts**: AI-enhanced recommendations for missing persons, overcrowding, access violations, and after-hours access
 - **Advanced Search**: Entity search across multiple identifiers
 - **RESTful API**: Comprehensive API for all operations
 
@@ -23,10 +24,11 @@ A comprehensive backend system for tracking and analyzing campus entity activiti
 - **Authentication**: JWT (Simple JWT) with token refresh and blacklist
 - **Database**: PostgreSQL with pgvector extension (Supabase)
 - **AI/ML**: 
-  - Google Gemini 2.5 Pro (summarization)
-  - scikit-learn (location prediction)
+  - Google Gemini 2.5 Flash & 2.0 Flash (summarization & explanations)
+  - scikit-learn (location & occupancy prediction)
 - **Vector Search**: pgvector for face embeddings
 - **Data Processing**: pandas, numpy
+- **AI Integration**: LangChain for structured LLM interactions
 
 ## Prerequisites
 
@@ -79,7 +81,6 @@ DB_PORT=5432
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-
 ### 5. Database Setup
 
 **Note:** Database is already hosted on Supabase with pgvector extension enabled. No local setup required.
@@ -90,8 +91,6 @@ python manage.py dbshell
 # Should connect successfully
 \q
 ```
-
-
 
 ### 6. Create Superuser (Optional)
 
@@ -108,16 +107,13 @@ Follow prompts to create admin account.
 ```bash
 # Make sure you're in Backend/CampusSentinal/
 uvicorn CampusSentinal.asgi:application --reload
-or 
+# or 
 python manage.py runserver
 ```
 
 **Server will start at:** `http://localhost:8000`
 
 **Admin Panel:** `http://localhost:8000/admin`
-
-
-
 
 ## Project Structure
 
@@ -138,7 +134,11 @@ Backend/
 │   ├── urls.py                  # API URL routes
 │   ├── prediction.py            # ML location prediction
 │   ├── explanation.py           # Prediction explanations
-│   └── summarizer.py            # Timeline summarization
+│   ├── summarizer.py            # Timeline summarization
+│   ├── occupancy_predictor.py   # Single location occupancy ML
+│   ├── all_occupancy_predictor.py  # Batch occupancy predictions
+│   ├── occupancy_explainer.py   # AI-powered occupancy explanations
+│   └── ActionRecommendation.py  # LLM-based alert recommendations
 ├── user/                        # User authentication app
 │   ├── migrations/              # Database migrations
 │   ├── __init__.py
@@ -243,8 +243,6 @@ POST /users/token/refresh/
 }
 ```
 
-**Note:** When `ROTATE_REFRESH_TOKENS` is enabled, a new refresh token is returned and the old one is blacklisted.
-
 #### Logout (Blacklist Token)
 ```
 POST /users/token/blacklist/
@@ -282,12 +280,6 @@ PATCH  /api/profiles/{entity_id}/
 DELETE /api/profiles/{entity_id}/
 ```
 
-**Example Request:**
-```bash
-curl "http://localhost:8000/api/profiles/" \
-  -H "Authorization: Bearer <your_access_token>"
-```
-
 **Example Response:**
 ```json
 {
@@ -316,30 +308,6 @@ GET /api/entities/?q={search_query}
 
 Searches across: name, email, card_id, device_hash, face_id, entity_id, student_id, staff_id
 
-**Example Request:**
-```bash
-curl "http://localhost:8000/api/entities/?q=alice" \
-  -H "Authorization: Bearer <your_access_token>"
-```
-
-**Example Response:**
-```json
-[
-  {
-    "entity_id": "e7f8g9h0",
-    "name": "Alice Johnson",
-    "role": "student",
-    "email": "alice.johnson@university.edu",
-    "department": "Computer Science",
-    "student_id": "2021CS042",
-    "card_id": "CARD042",
-    "face_id": "FACE042",
-    "device_hash": "hash_abc123",
-    "created_at": "2024-01-15T10:30:00Z"
-  }
-]
-```
-
 ---
 
 ### 3. Entity Details with Last Seen
@@ -347,12 +315,6 @@ curl "http://localhost:8000/api/entities/?q=alice" \
 #### Get Entity Profile
 ```
 GET /api/entities/{entity_id}/
-```
-
-**Example Request:**
-```bash
-curl "http://localhost:8000/api/entities/e7f8g9h0/" \
-  -H "Authorization: Bearer <your_access_token>"
 ```
 
 **Example Response:**
@@ -363,49 +325,90 @@ curl "http://localhost:8000/api/entities/e7f8g9h0/" \
   "role": "student",
   "email": "alice.johnson@university.edu",
   "department": "Computer Science",
-  "student_id": "2021CS042",
-  "staff_id": null,
-  "card_id": "CARD042",
-  "face_id": "FACE042",
-  "device_hash": "hash_abc123",
-  "created_at": "2024-01-15T10:30:00Z",
   "last_seen": "2024-10-08T14:30:00Z"
 }
 ```
 
 ---
 
-### 4. Alerts System
+### 4. Intelligent Alerts System
 
-#### Get Inactive Entities
+#### Get Campus Alerts with AI Recommendations
 ```
 GET /api/alerts/?hours={threshold_hours}
 ```
 
 **Query Parameters:**
-- `hours` (optional): Inactivity threshold in hours (default: 12)
+- `hours` (optional): Inactivity threshold for missing person alerts (default: 10)
 
-**Example Request:**
-```bash
-curl "http://localhost:8000/api/alerts/?hours=24" \
-  -H "Authorization: Bearer <your_access_token>"
-```
+**Features:**
+- Missing Person detection (excludes sleeping hours: 12 AM - 7 AM)
+- Overcrowding detection (based on location capacity)
+- Access Violation detection (unauthorized area access)
+- After Hours Access detection (10 PM - 7 AM)
+- AI-powered recommendations via Google Gemini 2.0 Flash
 
 **Example Response:**
 ```json
 {
   "alerts": [
     {
-      "entity_id": "e7f8g9h0",
-      "name": "Alice Johnson",
-      "email": "alice.johnson@university.edu",
-      "last_seen": "2024-10-07T10:30:00Z",
-      "alert": "No observation for > 24 hours"
+      "alert_type": "Missing Person",
+      "severity": 10,
+      "message": "Alice Johnson had no activity for 15.5 hours...",
+      "details": {
+        "entity_id": "e7f8g9h0",
+        "name": "Alice Johnson",
+        "gap_start": "2024-10-07T10:30:00Z",
+        "gap_end": "2024-10-08T09:00:00Z",
+        "gap_hours": 15.5,
+        "total_gap_hours": 22.5
+      },
+      "recommendation": "Contact emergency contacts immediately and review security footage from the last known location. Check with roommates and classmates for any information.",
+      "llm_recommendation": "Contact emergency contacts immediately and review security footage from the last known location. Check with roommates and classmates for any information."
+    },
+    {
+      "alert_type": "Overcrowding",
+      "severity": 7,
+      "message": "Library was over capacity by 125% at 2024-10-08 14:30.",
+      "details": {
+        "location_name": "Library",
+        "current_count": 4837,
+        "max_capacity": 2150,
+        "timestamp": "2024-10-08T14:30:00Z"
+      },
+      "recommendation": "Implement immediate crowd control measures by opening additional library wings and creating overflow study spaces in nearby seminar rooms.",
+      "llm_recommendation": "Implement immediate crowd control measures by opening additional library wings and creating overflow study spaces in nearby seminar rooms."
+    },
+    {
+      "alert_type": "Access Violation",
+      "severity": 7,
+      "message": "John Doe (student) entered restricted area: Faculty Office.",
+      "details": {
+        "entity_id": "a1b2c3d4",
+        "name": "John Doe",
+        "role": "student",
+        "location": "Faculty Office",
+        "timestamp": "2024-10-08T11:45:00Z"
+      },
+      "recommendation": "Contact campus security to verify the individual's credentials and reason for access. Dispatch security personnel if unauthorized.",
+      "llm_recommendation": "Contact campus security to verify the individual's credentials and reason for access. Dispatch security personnel if unauthorized."
     }
   ],
-  "count": 1
+  "count": 3,
+  "recommendations_summary": {
+    "Missing Person": "Contact emergency contacts immediately...",
+    "Overcrowding": "Implement immediate crowd control measures...",
+    "Access Violation": "Contact campus security to verify..."
+  }
 }
 ```
+
+**Alert Types & Severity:**
+- Missing Person: Severity 10 (Critical)
+- Overcrowding: Severity 5-8 (based on overage %)
+- Access Violation: Severity 7 (High)
+- After Hours Access: Severity 6 (Medium-High)
 
 ---
 
@@ -421,23 +424,12 @@ GET /api/entities/{entity_id}/timeline/?date={YYYY-MM-DD}&types={event_types}
 - `types` (optional): Comma-separated event types to filter
 
 **Event Types:**
-- `wifi_logs`
-- `cctv_frames`
-- `card_swipes`
-- `lab_booking`
-- `library_checkouts`
-- `text_notes`
-
-**Example Request:**
-```bash
-curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08&types=wifi_logs,card_swipes" \
-  -H "Authorization: Bearer <your_access_token>"
-```
+- `wifi_logs`, `cctv_frames`, `card_swipes`, `lab_booking`, `library_checkouts`, `text_notes`
 
 **Example Response:**
 ```json
 {
-  "summary": "- **08:30 AM - 12:00 PM (3 hours 30 minutes)**: Alice started her day at the Computer Science Department building. She stayed here for the morning, likely attending classes or working on projects.\n\n- **12:15 PM - 01:00 PM (45 minutes)**: She then moved to the Central Cafeteria for lunch.\n\n- **01:30 PM - 05:00 PM (3 hours 30 minutes)**: After lunch, Alice went to the Library where she spent the afternoon, probably studying or doing research.",
+  "summary": "- **08:30 AM - 12:00 PM (3 hours 30 minutes)**: Alice started her day at the Computer Science Department building...",
   "timeline": [
     {
       "event_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -445,20 +437,7 @@ curl "http://localhost:8000/api/entities/e7f8g9h0/timeline/?date=2024-10-08&type
       "timestamp": "2024-10-08T08:30:00Z",
       "location": "CS Building - Floor 2",
       "confidence": 0.95,
-      "created_at": "2024-10-08T08:30:05Z",
-      "entity": {
-        "entity_id": "e7f8g9h0",
-        "name": "Alice Johnson",
-        "role": "student"
-      },
-      "wifi_logs": [
-        {
-          "id": 1,
-          "device_hash": "hash_abc123",
-          "ap_id": "AP_CS_F2_01",
-          "timestamp": "2024-10-08T08:30:00Z"
-        }
-      ]
+      "wifi_logs": [...]
     }
   ]
 }
@@ -480,14 +459,6 @@ POST /api/search/face/
 }
 ```
 
-**Example Request:**
-```bash
-curl -X POST "http://localhost:8000/api/search/face/" \
-  -H "Authorization: Bearer <your_access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"embedding": [0.123, -0.456, ...]}'
-```
-
 **Success Response (200 OK):**
 ```json
 {
@@ -496,23 +467,9 @@ curl -X POST "http://localhost:8000/api/search/face/" \
     "entity_id": "e7f8g9h0",
     "name": "Alice Johnson",
     "role": "student",
-    "email": "alice.johnson@university.edu",
-    "department": "Computer Science",
-    "student_id": "2021CS042",
-    "card_id": "CARD042",
-    "face_id": "FACE042",
-    "device_hash": "hash_abc123",
-    "created_at": "2024-01-15T10:30:00Z"
+    "email": "alice.johnson@university.edu"
   },
   "distance": 0.23
-}
-```
-
-**No Match Response (404 NOT FOUND):**
-```json
-{
-  "match": false,
-  "detail": "No confident match found."
 }
 ```
 
@@ -532,274 +489,399 @@ POST /api/predict/
 }
 ```
 
-**Example Request:**
-```bash
-curl -X POST "http://localhost:8000/api/predict/" \
-  -H "Authorization: Bearer <your_access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"entity_id": "e7f8g9h0"}'
-```
-
 **Example Response:**
 ```json
 {
   "entity_id": "e7f8g9h0",
   "predicted_location": "Library - Floor 3",
-  "explanation": "Based on Alice's recent pattern of visiting the Computer Science building in the morning and the library in the afternoon during weekdays, the model predicts she will likely be at the Library - Floor 3 around 3:00 PM, as this matches her typical afternoon study routine.",
+  "explanation": "Based on Alice's recent pattern of visiting the Computer Science building in the morning and the library in the afternoon during weekdays, the model predicts she will likely be at the Library - Floor 3 around 3:00 PM...",
   "past_activities": [
     {
       "timestamp": "2024-10-08T08:30:00Z",
       "location": "CS Building - Floor 2"
-    },
-    {
-      "timestamp": "2024-10-08T12:15:00Z",
-      "location": "Central Cafeteria"
-    },
-    {
-      "timestamp": "2024-10-08T13:30:00Z",
-      "location": "Library - Floor 3"
     }
   ]
 }
 ```
 
-**Error Response (404 NOT FOUND):**
+---
+
+### 8. Occupancy Forecasting (NEW)
+
+#### Predict Occupancy for Single Location
+```
+POST /api/forecast/
+```
+
+**Request Body:**
 ```json
 {
-  "error": "No location data found for this entity"
+  "location_id": "Library",
+  "future_time": "2024-10-25T14:30:00Z"
 }
 ```
+
+**Features:**
+- Random Forest Regressor trained on historical occupancy data
+- Time-based features: hour, day of week, week of year, time period
+- AI-powered explanation via Google Gemini 2.5 Flash
+- Status classification: Normal, Overcrowded, Underused
+
+**Example Response:**
+```json
+{
+  "location_name": "Library",
+  "future_time": "2024-10-25T14:30:00",
+  "predicted_occupancy": 1847,
+  "status": "Normal",
+  "explanation": "From previous data, I see that Library is bustling with activity during this time. The predicted value is 1847 people because Thursday afternoons typically see high student traffic as many prefer studying in the library after morning classes. This afternoon period on weekdays consistently shows elevated occupancy as students gather for group study sessions and individual research work, making it one of the busiest times at this location."
+}
+```
+
+**Status Thresholds:**
+- **Overcrowded**: > 90% of max capacity
+- **Normal**: 30% - 90% of max capacity
+- **Underused**: < 30% of max capacity
+
+**Supported Locations:**
+- Admin Lobby (710)
+- Auditorium (1360)
+- Hostel (5000)
+- LAB_102 (15)
+- LAB (30)
+- Library (2150)
+- Seminar Room (1800)
+- WORKSHOP (20)
+- LAB_305 (30)
+- Gym (1012)
+- LAB_101 (40)
+- Cafeteria (1360)
+- LAB_A2 (12)
+- LAB_A1 (20)
+- Main Building (30)
+- Faculty Office (650)
+
+---
+
+#### Predict Occupancy for All Locations (Batch)
+```
+POST /api/forecast-all/
+```
+
+**Request Body:**
+```json
+{
+  "future_time": "2024-10-25T14:30:00Z"
+}
+```
+
+**Features:**
+- Optimized batch prediction for all campus locations
+- Single model initialization for efficiency
+- Real-time capacity status for each location
+
+**Example Response:**
+```json
+[
+  {
+    "location_name": "Library",
+    "predicted_occupancy": 1847,
+    "status": "Normal"
+  },
+  {
+    "location_name": "Cafeteria",
+    "predicted_occupancy": 1523,
+    "status": "Overcrowded"
+  },
+  {
+    "location_name": "Gym",
+    "predicted_occupancy": 234,
+    "status": "Underused"
+  },
+  {
+    "location_name": "LAB_305",
+    "predicted_occupancy": 18,
+    "status": "Normal"
+  }
+]
+```
+
+**Use Cases:**
+- Dashboard overview of campus occupancy
+- Real-time capacity monitoring
+- Space utilization analytics
+- Crowd management planning
 
 ---
 
 ## Database Models
 
-### User
-Custom user model for authentication.
+### Core Models
+
+#### User
+Custom user model for authentication with email as username.
+
+#### Profile
+Primary entity model storing user information and identifiers.
+
+#### Event
+Base event model linking all activity types.
+
+#### OccupancyData (NEW)
+Historical occupancy records for ML training.
 
 **Fields:**
-- `email` (PK): Email address (used for login)
-- `first_name`: First name
-- `last_name`: Last name
-- `is_staff`: Staff status
-- `is_active`: Active status
-- `date_joined`: Registration date
+- `location_id`: Location identifier
+- `start_time`: Timestamp of occupancy count
+- `count`: Number of people at location
 
-### Profile
-Primary entity model storing user information.
+**Indexes:**
+- `(location_id, start_time)` for efficient queries
+- Unique constraint on `(location_id, start_time)`
 
-**Fields:**
-- `entity_id` (PK): Unique identifier
-- `name`: Full name
-- `role`: student/faculty/staff
-- `email`: Email address
-- `department`: Department name
-- `student_id`: Student ID (XOR with staff_id)
-- `staff_id`: Staff/Faculty ID (XOR with student_id)
-- `card_id`: RFID card identifier
-- `face_id`: Face identifier
-- `device_hash`: Device MAC hash
-- `created_at`: Creation timestamp
+### Activity Models
 
-### Event
-Base event model for all activities.
-
-**Fields:**
-- `event_id` (PK, UUID): Unique event identifier
-- `entity` (FK): Reference to Profile
-- `location`: Location name
-- `timestamp`: Event timestamp
-- `confidence`: Confidence score (0-1)
-- `event_type`: Type of event
-- `created_at`: Creation timestamp
-
-### WifiLogs
-WiFi connection events.
-
-**Fields:**
-- `event` (FK): Reference to Event
-- `device_hash`: Device MAC hash
-- `ap_id`: Access Point ID
-- `timestamp`: Connection timestamp
-
-### CardSwipe
-RFID card swipe events.
-
-**Fields:**
-- `event` (FK): Reference to Event
-- `card_id`: Card identifier
-- `location_id`: Reader location
-- `timestamp`: Swipe timestamp
-
-### CCTVFrame
-CCTV detection events.
-
-**Fields:**
-- `frame_id` (PK): Frame identifier
-- `event` (FK): Reference to Event
-- `location_id`: Camera location
-- `timestamp`: Detection timestamp
-- `face_id`: Detected face ID
-
-### Note
-Text notes/observations.
-
-**Fields:**
-- `note_id` (PK): Note identifier
-- `event` (FK): Reference to Event
-- `entity` (FK): Reference to Profile
-- `category`: Note category
-- `text`: Note content
-- `timestamp`: Note timestamp
-
-### LabBooking
-Lab booking records.
-
-**Fields:**
-- `booking_id` (PK): Booking identifier
-- `event` (FK): Reference to Event
-- `entity` (FK): Reference to Profile
-- `room_id`: Lab room ID
-- `start_time`: Booking start
-- `end_time`: Booking end
-- `attended`: Attendance status
-
-### LibraryCheckout
-Library book checkouts.
-
-**Fields:**
-- `checkout_id` (PK): Checkout identifier
-- `event` (FK): Reference to Event
-- `entity` (FK): Reference to Profile
-- `book_id`: Book identifier
-- `timestamp`: Checkout timestamp
-
-### FaceEmbedding
-Face embeddings for recognition.
-
-**Fields:**
-- `face_id` (PK): Face identifier
-- `profile` (FK): Reference to Profile
-- `embedding`: 512-dimensional vector (pgvector)
-- `embedding_model`: Model name
+- **WifiLogs**: WiFi connection events
+- **CardSwipe**: RFID card swipe events
+- **CCTVFrame**: CCTV detection events
+- **Note**: Text notes/observations
+- **LabBooking**: Lab booking records
+- **LibraryCheckout**: Library book checkouts
+- **FaceEmbedding**: Face embeddings for recognition (512D pgvector)
 
 ---
 
 ## AI/ML Features
 
 ### 1. Timeline Summarization
-
-**Technology:** Google Gemini 2.5 Pro
-
-**Process:**
-1. Fetches all events for entity in date range
-2. Converts to human-readable timeline
-3. Sends to Gemini with custom prompt
-4. Returns natural language summary
-
-**Example Prompt:**
-```
-You are an assistant that summarizes a person's daily activity timeline.
-Write a short, easy-to-understand summary that sounds like someone naturally describing the day.
-...
-```
+**Technology:** Google Gemini 2.5 Flash  
+**Purpose:** Convert event sequences into natural language summaries
 
 ### 2. Location Prediction
+**Technology:** Random Forest Classifier  
+**Features:** hour, day_of_week, is_weekend  
+**Purpose:** Predict entity's next location based on patterns
 
-**Technology:** Random Forest Classifier (scikit-learn)
-
-**Features:**
-- `hour`: Hour of day (0-23)
-- `day_of_week`: Day (0=Monday, 6=Sunday)
-- `is_weekend`: Weekend flag (0/1)
+### 3. Occupancy Forecasting (NEW)
+**Technology:** Random Forest Regressor  
+**Features:** 
+- Temporal: year, month, day, hour, minute, day_of_week, week_of_year
+- Derived: is_weekend, time_in_minutes, time_period (Night/Morning/Afternoon/Evening)
 
 **Process:**
-1. Extracts temporal features from historical data
-2. Trains Random Forest on location patterns
-3. Predicts next location for future timestamp
-4. Generates explanation via Gemini
-
-**Prediction Logic:**
 ```python
-# Train on past events
-X = [hour, day_of_week, is_weekend]
-y = location_encoded
+# Extract time features
+hour, day_of_week, is_weekend, time_period, etc.
 
-model.fit(X, y)
+# Train Random Forest
+model = RandomForestRegressor(n_estimators=100, max_depth=15)
+model.fit(X_train, y_train)
 
-# Predict 1 hour ahead
-future_time = now + 1 hour
-prediction = model.predict(future_features)
+# Predict future occupancy
+predicted_count = model.predict(future_features)
+```
+
+### 4. Occupancy Explanations (NEW)
+**Technology:** Google Gemini 2.5 Flash  
+**Purpose:** Generate human-readable explanations for occupancy predictions
+
+**Features:**
+- Analyzes historical patterns (same hour, same day of week)
+- Provides narrative explanations without numerical comparisons
+- Contextualizes predictions with time period insights
+
+### 5. Intelligent Alert Recommendations (NEW)
+**Technology:** LangChain + Google Gemini 2.0 Flash  
+**Purpose:** Generate actionable, context-aware recommendations for alerts
+
+**Alert-Specific Prompting:**
+- Missing Person: Checks last known location, emergency contacts, security footage
+- Overcrowding: Suggests crowd control, additional entry points, scheduling changes
+- Access Violation: Recommends security contact, entity verification
+- After Hours Access: Suggests reaching out to entity, on-site verification
+
+**Implementation:**
+```python
+# LangChain LCEL pipeline
+chain = prompt | llm | StrOutputParser()
+
+# Context preparation
+context = prepare_context(alert_type, alerts)
+
+# Generate recommendation
+recommendation = chain.invoke({
+    "alert_type": alert_type,
+    "count": len(alerts),
+    "context": context
+})
 ```
 
 ---
 
 ## Configuration
 
-### JWT Settings
+### Location Capacity Mapping
+```python
+LOCATION_MAX_CAPACITY = {
+    'Library': 2150,
+    'Cafeteria': 1360,
+    'Gym': 1012,
+    'Hostel': 5000,
+    # ... 16 total locations
+}
+```
 
+### Access Control Rules
+```python
+ACCESS_RULES = {
+    'Faculty Office': ['faculty', 'staff'],
+    'LAB_305': ['faculty', 'student'],
+    'Hostel': ['student'],
+    'Library': ['faculty', 'staff', 'student']
+}
+```
+
+### JWT Settings
 ```python
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
 }
-```
-
-### CORS Settings
-
-Configured for frontend at `http://localhost:3000`:
-
-```python
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
 ```
 
 ### Time Zone
-
 ```python
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
-```
-
-### Database Connection Pooling
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
-}
 ```
 
 ---
 
 ## Testing
 
-### Manual API Testing
-
+### Test Occupancy Prediction (Single Location)
 ```bash
-# Register a new user
-curl -X POST "http://localhost:8000/users/register/" \
+curl -X POST "http://localhost:8000/api/forecast/" \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@university.edu",
-    "password": "testPassword123",
-    "first_name": "Test",
-    "last_name": "User"
+    "location_id": "Library",
+    "future_time": "2024-10-25T14:30:00Z"
   }'
+```
 
-# Login to get tokens
-curl -X POST "http://localhost:8000/users/token/" \
+### Test Batch Occupancy Prediction
+```bash
+curl -X POST "http://localhost:8000/api/forecast-all/" \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@university.edu
+    "future_time": "2024-10-25T14:30:00Z"
+  }'
+```
+
+### Test Alert System
+```bash
+curl "http://localhost:8000/api/alerts/?hours=24" \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+## Error Handling
+
+### Common Error Responses
+
+**400 Bad Request:**
+```json
+{
+  "error": "location_id is required"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "error": "No historical occupancy data found for location: InvalidLocation"
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "error": "An internal server error occurred: <details>"
+}
+```
+
+---
+
+## Performance Optimizations
+
+1. **Batch Predictions**: `forecast-all` endpoint uses single model initialization for all locations
+2. **Database Indexing**: Optimized indexes on `(location_id, start_time)` for occupancy queries
+3. **Query Optimization**: Prefetch related entities for timeline queries
+4. **Async Processing**: Timeline summarization uses async/await for concurrent operations
+
+---
+
+## Environment Variables
+
+Required in `.env`:
+```env
+# Database (Supabase)
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=your_project.supabase.co
+DB_PORT=5432
+
+# AI Services
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+---
+
+## Troubleshooting
+
+### Gemini API Issues
+- Verify `GEMINI_API_KEY` is set in `.env`
+- Check API quota and rate limits
+- System falls back to generic messages if LLM unavailable
+
+### Database Connection
+- Ensure Supabase credentials are correct
+- Check network connectivity
+- Verify pgvector extension is enabled
+
+### Missing Predictions
+- Ensure historical data exists for the location
+- Check datetime format (ISO 8601)
+- Verify location_id matches exact name in `LOCATION_MAX_CAPACITY`
+
+---
+
+## Future Enhancements
+
+- [ ] Real-time occupancy streaming
+- [ ] Anomaly detection for unusual patterns
+- [ ] Multi-location route optimization
+- [ ] Predictive maintenance alerts
+- [ ] Integration with building management systems
+
+---
+
+## License
+
+[Your License Here]
+
+## Contributors
+
+[Your Team/Contributors Here]
+
+## Support
+
+For issues and questions:
+- GitHub Issues: [repository-url]/issues
+- Email: support@campussentinal.edu
