@@ -107,7 +107,6 @@ def read_root():
 
 
 if __name__ == "__main__":
-    # Run the server
     print("Starting FastAPI server...")
     uvicorn.run(fastapi_app, host="0.0.0.0", port=8080)
 
