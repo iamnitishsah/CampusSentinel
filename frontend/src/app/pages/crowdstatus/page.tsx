@@ -67,16 +67,11 @@ const campusLayout: Record<string, {
   height: number; 
   category: string; 
 }> = {
-    // 🏢 Administrative Zone (Top-left)
     "Main Building": { x: 50, y: 50, width: 220, height: 185, rotation: 0, category: "Administrative" },
     "Admin Lobby": { x: 30, y: 18, width: 130, height: 175, rotation: -1, category: "Administrative" },
     "Faculty Office": { x: 40, y: 26, width: 150, height: 180, rotation: 1, category: "Administrative" },
-
-    // 🎓 Academic Zone (Top-right)
     "Library": { x: 33, y: 60, width: 200, height: 185, rotation: -1, category: "Academic" },
     "Seminar Room": { x: 55, y: 15, width: 200, height: 190, rotation: 1, category: "Academic" },
-
-    // 🧪 Laboratory Zone (Middle-right)
     "LAB_101": { x: 65, y: 40, width: 150, height: 175, rotation: -2, category: "Laboratory" },
     "LAB_102": { x: 70, y: 64, width: 130, height: 180, rotation: 1, category: "Laboratory" },
     "LAB_305": { x: 85, y: 45, width: 180, height: 185, rotation: 3, category: "Laboratory" },
@@ -84,20 +79,11 @@ const campusLayout: Record<string, {
     "LAB_A2": { x: 90, y: 66, width: 120, height: 175, rotation: -1, category: "Laboratory" },
     "LAB": { x: 90, y: 22, width: 130, height: 180, rotation: -2, category: "Laboratory" },
     "WORKSHOP": { x: 75, y: 18, width: 140, height: 175 ,rotation: 1, category: "Laboratory" },
-
-    // 🏠 Residential Zone (Bottom-left)
     "Hostel": { x: 17, y: 45, width: 220, height: 160, rotation: -2, category: "Residential" },
-
-    // 🍽️ Dining & Recreation Zone (Bottom-middle)
     "Cafeteria": { x: 15, y: 75, width: 160, height: 190, rotation: -2,  category: "Dining" },
     "Gym": { x: 10, y: 15, width: 180, height: 180, rotation: 0, category: "Recreation" },
-
-    // 🎭 Event Zone (Bottom-right)
     "Auditorium": { x: 55, y: 74, width: 210, height: 190, rotation: -1, category: "Event Space" },
 };
-
-
-// --- Helper Functions ---
 const calculateEndTime = (startTime: string, intervalMins: number) => {
   if (!startTime) return "";
   const parts = startTime.split(":").map(Number);
@@ -174,8 +160,6 @@ const getStatusConfig = (status: LocationStatus["status"]): StatusConfig => {
       };
   }
 };
-
-// --- API FETCH Logic (Sequential Calls) ---
 const fetchAllForecasts = async (
   date: string,
   startTime: string,
@@ -278,7 +262,7 @@ const TimeDisplay = () => {
 };
 
 export default function CrowdStatusPage() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
   const initialTimes = getInitialTime();
 
   const [selectedDate, setSelectedDate] = useState(initialTimes.date);
@@ -291,7 +275,6 @@ export default function CrowdStatusPage() {
 
   useEffect(() => {
     if (startTime) {
-      // The TimePicker returns HH:mm, so we ensure full format for calculation
       const fullStartTime = startTime.length === 5 ? `${startTime}:00` : startTime; 
       const newEnd = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
       setEndTime(newEnd);
@@ -314,14 +297,8 @@ export default function CrowdStatusPage() {
     setLocationStatuses(results);
   }, [selectedDate, startTime]);
 
-  // Initial fetch on component mount
-  useEffect(() => {
-    handleRunPrediction();
-  }, [handleRunPrediction]);
-
 
   const handleLocationClick = (linkId: string) => {
-    // Redirect to the individual location prediction page
     router.push(`/pages/location/${linkId}`); 
   };
 
@@ -521,9 +498,6 @@ export default function CrowdStatusPage() {
                         </div>
                       </div>
 
-                    
-
-                      {/* Status info */}
                       {location.status === "Loading" ? (
                         <div className="flex items-center gap-1 text-slate-400 text-xs">
                           <div className="w-2 h-2 border border-slate-500/50 border-t-slate-300 rounded-full animate-spin" />
