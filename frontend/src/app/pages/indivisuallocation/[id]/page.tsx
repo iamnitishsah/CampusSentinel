@@ -11,12 +11,12 @@ import {
   Clock,
   Eye,
   MapPin,
-  Shield,
   TrendingUp,
   Users,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
+import TimePicker from "react-time-picker";
 import {
   RadialBar,
   RadialBarChart,
@@ -415,15 +415,17 @@ export default function IndividualLocationPage() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 p-2.5 rounded-xl border border-cyan-500/30">
-              <MapPin className="w-7 h-7 text-cyan-400" />
-            </div> 
+                  <MapPin className="w-7 h-7 text-cyan-400" />
+                </div>
               </div>
-             <div>
-              <h2 className="text-4xl font-bold text-white">{locationName}</h2>
-              <p className="text-slate-400 mt-1">
-                Real-time occupancy monitoring and AI-powered forecasting
-              </p>
-            </div>
+              <div>
+                <h2 className="text-4xl font-bold text-white">
+                  {locationName}
+                </h2>
+                <p className="text-slate-400 mt-1">
+                  Real-time occupancy monitoring and AI-powered forecasting
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <TimeDisplay /> {/* Integrated Real-Time Clock */}
@@ -442,7 +444,6 @@ export default function IndividualLocationPage() {
       </header>
 
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-   
         {/* Date & Time Input Section */}
         <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 mb-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
@@ -473,14 +474,18 @@ export default function IndividualLocationPage() {
                 <Clock className="w-4 h-4 text-emerald-400" />
                 Start Time
               </label>
-              <input
-                type="time"
-                step="1"
+
+              <TimePicker
+                disableClock
+                format="HH:mm:ss"
+                onChange={(value) => {
+                  if (value) setStartTime(value); // value already in HH:mm:ss format
+                }}
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white font-mono text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
+                clearIcon={null}
+                clockIcon={null}
               />
-             
             </div>
 
             {/* End Time (Auto-calculated) */}
@@ -497,7 +502,6 @@ export default function IndividualLocationPage() {
                 disabled
                 className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg cursor-not-allowed"
               />
-
             </div>
 
             {/* Run Prediction Button Container */}
@@ -535,8 +539,6 @@ export default function IndividualLocationPage() {
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-             
-
               {/* 2. Predicted Occupancy */}
               <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
                 <div className="flex items-center justify-between mb-4">
@@ -674,7 +676,6 @@ export default function IndividualLocationPage() {
                     </div>
                   </div>
 
-                
                   <div
                     className={`flex items-start gap-4 p-3 bg-slate-800/30 rounded-xl border ${
                       status?.border || ""
