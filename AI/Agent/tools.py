@@ -120,22 +120,23 @@ def predict_location(entity_id: str) -> dict:
 
 
 @tool
-def get_alerts(hours: int = 12) -> dict:
+def get_alerts() -> dict:
     """
-    Retrieves security alerts for entities not observed in the campus in the last N hours.
-    Useful for finding missing persons or unusual absences.
-
-    Args:
-        hours: Number of hours to look back (default: 12)
+    Retrieves a prioritized list of all security alerts from the historical dataset.
+    This includes 'Missing Person' (activity gaps), 'Overcrowding',
+    'Access Violation', and 'After Hours Access' alerts.
+    The backend processes all historical data to find these anomalies.
 
     Returns:
-        Dictionary with list of entities and their last seen information
+        Dictionary with a list of alerts, prioritized by severity,
+        and potentially enhanced with AI-driven recommendations.
     """
     try:
         headers = _get_auth_headers()
+        # The 'hours' parameter is no longer used by the backend endpoint,
+        # as it performs a complex historical analysis.
         response = requests.get(
             f"{API_BASE_URL}/api/alerts/",
-            params={"hours": hours},
             headers=headers
         )
         response.raise_for_status()
