@@ -271,10 +271,8 @@ export default function IndividualLocationPage() {
   const [error, setError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
-  // Get fixed capacity for this location from the backend config copy
   const LOCATION_CAPACITY = BACKEND_CAPACITIES[locationName] || DEFAULT_CAPACITY;
 
-  // --- Date and Time States ---
   const initialTimes = getInitialTime();
   const [selectedDate, setSelectedDate] = useState(initialTimes.date);
   const [startTime, setStartTime] = useState(initialTimes.startTime);
@@ -289,15 +287,15 @@ export default function IndividualLocationPage() {
   useEffect(() => {
     if (!BACKEND_CAPACITIES[locationName]) {
         setError(`Location "${locationName}" is not recognized in the backend configuration.`);
-        setHasSubmitted(true); // Stop showing initial loading/prompt
+        setHasSubmitted(true); 
         return;
     }
 
     if (!hasSubmitted && !locationDetails) {
-        // Run initial fetch on load using current time
+       
         fetchForecast(selectedDate, startTime);
     }
-  }, [locationName, selectedDate, startTime]); // Dependencies for initial run
+  }, [locationName, selectedDate, startTime]); 
 
 
   const fetchForecast = useCallback(async (date: string, time: string) => {
@@ -308,10 +306,10 @@ export default function IndividualLocationPage() {
 
     setLoading(true);
     setError(null);
-    setHasSubmitted(true); // Mark as submitted to show results layout
+    setHasSubmitted(true);
 
     try {
-      // Construct End Time for the payload (which is 15 mins after the selected Start Time)
+
       const fullStartTime = time.length === 5 ? `${time}:00` : time;
       const calculatedEndTime = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
 
@@ -441,7 +439,7 @@ const futureTimestamp = new Date(
       </header>
 
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Date & Time Input Section */}
+
         <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 mb-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
             <CalendarDays className="w-6 h-6 text-cyan-400" />
@@ -451,7 +449,7 @@ const futureTimestamp = new Date(
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-            {/* Date Picker */}
+
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
                 <Calendar className="w-4 h-4 text-cyan-400" />
@@ -465,45 +463,43 @@ const futureTimestamp = new Date(
               />
             </div>
 
-            {/* Start Time */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                <Clock className="w-4 h-4 text-emerald-400" />
-                Start Time
-              </label>
 
-              <TimePicker
-                disableClock
-                format="HH:mm:ss"
-                onChange={(value) => {
-                  // value is HH:mm
-                  if (value) setStartTime(value); 
-                }}
-                value={startTime.slice(0, 5)} // Show only HH:mm in the picker
-                className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
-                clearIcon={null}
-                clockIcon={null}
-              />
-            </div>
+          {/* Start Time */}
+<div className="space-y-2">
+  <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+    <Clock className="w-4 h-4 text-blue-400" />
+    Start Time
+  </label>
 
-            {/* End Time (Auto-calculated) */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                <Clock className="w-4 h-4 text-blue-400" />
-                End Time (Prediction Target)
-              </label>
-               <TimePicker
-                disableClock
-                format="HH:mm:ss"
-                
-                disabled
-                 value={endTime.slice(0, 5)} 
-                className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg cursor-not-allowed"
-                clearIcon={null}
-                clockIcon={null}
-              />
-           
-            </div>
+  <TimePicker
+    disableClock
+    format="HH:mm:ss"
+    onChange={(value) => {
+      if (value) setStartTime(value); 
+    }}
+    value={startTime.slice(0, 5)}
+    className="w-full px-4 py-3 bg-slate-800/50 rounded-xl text-white font-mono text-lg transition-all"
+    clearIcon={null}
+    clockIcon={null}
+  />
+</div>
+
+{/* End Time */}
+<div className="space-y-2">
+  <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+    <Clock className="w-4 h-4 text-emerald-400" />
+    End Time (Prediction Target)
+  </label>
+  <TimePicker
+    disableClock
+    format="HH:mm:ss"
+    disabled
+    value={endTime.slice(0, 5)} 
+    className="w-full px-4 py-3 bg-slate-800/50 rounded-xl text-white font-mono text-lg cursor-not-allowed"
+    clearIcon={null}
+    clockIcon={null}
+  />
+</div>
 
             {/* Run Prediction Button Container */}
             <div className="flex items-end pt-4 lg:pt-0">
@@ -535,12 +531,10 @@ const futureTimestamp = new Date(
           )}
         </div>
 
-        {/* Results Section - Only show after successful submission */}
         {hasSubmitted && locationDetails && !loading && !error && (
           <>
-            {/* Stats Grid */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* 1. Predicted Occupancy */}
               <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-all hover:scale-105">
                 <div className="flex items-center justify-between mb-4">
                   <div className="bg-cyan-500/10 p-3 rounded-xl border border-cyan-500/30">

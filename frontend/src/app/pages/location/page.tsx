@@ -7,6 +7,7 @@ import {
   List,
   MapPin,
   Search,
+  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,7 +31,6 @@ const locations = [
   { name: "Faculty Office", category: "Administrative", capacity: "500 seats" },
 ];
 
-
 const categoryColors: Record<string, string> = {
   Residential: "from-blue-400/20 to-indigo-400/20",
   Dining: "from-green-400/20 to-emerald-400/20",
@@ -40,7 +40,6 @@ const categoryColors: Record<string, string> = {
   "Event Space": "from-cyan-400/20 to-teal-400/20",
   Administrative: "from-gray-400/20 to-slate-400/20",
 };
-
 
 export default function LocationPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +60,7 @@ export default function LocationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br  from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Enhanced Header */}
       <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50 shadow-2xl">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
@@ -82,24 +81,34 @@ export default function LocationPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => router.push("/pages/dashboard")}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600/50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              <ArrowLeft className="w-4 h-4 text-slate-300" />
-              <span className="hidden sm:inline text-slate-200 font-medium">
-                Back to Dashboard
-              </span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push("/pages/crowdstatus")}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <Users className="w-4 h-4 text-white" />
+                <span className="hidden sm:inline text-white font-medium">
+                  Crowd Summary View
+                </span>
+              </button>
+              <button
+                onClick={() => router.push("/pages/dashboard")}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600/50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <ArrowLeft className="w-4 h-4 text-slate-300" />
+                <span className="hidden sm:inline text-slate-200 font-medium">
+                  Back to Dashboard
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Enhanced Search & Filter Bar */}
+      <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
         <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 mb-8 shadow-xl">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
@@ -111,7 +120,6 @@ export default function LocationPage() {
               />
             </div>
 
-            {/* Category Filter */}
             <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
               {categories.map((category) => (
                 <button
@@ -127,8 +135,6 @@ export default function LocationPage() {
                 </button>
               ))}
             </div>
-
-            {/* View Toggle */}
             <div className="flex gap-2 bg-slate-800/50 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode("grid")}
@@ -187,7 +193,6 @@ export default function LocationPage() {
                 }
               >
                 <div className="relative">
-                  
                   <div
                     className={`relative bg-gradient-to-br ${
                       categoryColors[location.category]
