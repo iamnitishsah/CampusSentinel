@@ -341,7 +341,7 @@ export default function IndividualLocationPage() {
                 datee.getMinutes(),
                 datee.getSeconds()
             )
-        ).toISOString();
+        ).toISOString();  
 
       const payload = {
         location_id: locationName,
