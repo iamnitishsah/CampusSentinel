@@ -1,26 +1,27 @@
 "use client";
 import Chatbot from "@/app/components/chatbot/page";
 import {
-  AlertTriangle,
-  Bell,
-  Briefcase,
-  Building2,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Eye,
-  Filter,
-  Lock,
-  LogOut,
-  Menu,
-  Moon,
-  Search,
-  Settings,
-  Shield,
-  Upload,
-  User,
-  UserX,
-  X,
+    AlertTriangle,
+    Bell,
+    Briefcase,
+    Building2,
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    Eye,
+    Filter,
+    Lock,
+    LogOut,
+    Menu,
+    Moon,
+    Search,
+    Settings,
+    Shield,
+    Upload,
+    User,
+    Users,
+    UserX,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -254,7 +255,7 @@ function Dashboard() {
   const alertTypes = [
     { name: "All", icon: Bell, color: "blue" },
     { name: "Missing Person", icon: UserX, color: "red" },
-    // { name: "Overcrowding", icon: Users, color: "orange" },
+    { name: "Overcrowding", icon: Users, color: "orange" },
     { name: "Access Violation", icon: Lock, color: "purple" },
     { name: "After Hours Access", icon: Moon, color: "indigo" },
   ];
@@ -269,14 +270,14 @@ function Dashboard() {
           borderClass: "border-red-900/50",
           textClass: "text-red-400",
         };
-      //   case "Overcrowding":
-      //     return {
-      //       icon: Users,
-      //       color: "orange",
-      //       bgClass: "bg-orange-950/30",
-      //       borderClass: "border-orange-900/50",
-      //       textClass: "text-orange-400",
-      //     };
+        case "Overcrowding":
+          return {
+            icon: Users,
+            color: "orange",
+            bgClass: "bg-orange-950/30",
+            borderClass: "border-orange-900/50",
+            textClass: "text-orange-400",
+          };
       case "Access Violation":
         return {
           icon: Lock,

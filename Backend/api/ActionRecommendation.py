@@ -64,13 +64,14 @@ Details:
 {context}
 
 Instructions based on alert type:
-- If Missing Person and gap > 12 hours: Suggest checking last known location, contacting emergency contacts, and reviewing security footage
-- If Missing Person and gap < 12 hours: Suggest monitoring the situation and checking campus access logs
-- If Overcrowding and capacity > 200%: Suggest immediate crowd control, additional entry points, and scheduling changes
-- If Overcrowding and capacity < 200%: Suggest capacity monitoring, better space utilization, and booking system improvements
+- If Missing Person and gap > 10 hours: Suggest checking last known location, contacting emergency contacts, and reviewing security footage or some other actions to be done.
+- If Overcrowding and capacity > 200%: Suggest immediate crowd control, additional entry points, and scheduling changes or some other actions to be done.
+- If Overcrowding and capacity < 200%: Suggest capacity monitoring, better space utilization, and booking system improvements or some other actions to be done.
+- If Access Violation: Suggest to contact security, reach out to the entity and ask for reason, or some other actions to be done.
+- After Hours Access: Reach out to the entity, Suggest to go to location and check, or some other actions to be done.
 - Each time give unique just use this template but change words only.
 
-Provide ONE clear, actionable recommendation following these guidelines."""
+Provide ONE clear, actionable and impactful in real world scenario recommendation following these guidelines."""
 
     def generate_recommendations(self, alerts_data: Dict[str, Any]) -> Dict[str, Any]:
         """

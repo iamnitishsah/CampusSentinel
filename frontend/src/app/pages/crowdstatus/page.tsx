@@ -17,22 +17,22 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const BACKEND_CAPACITIES: Record<string, number> = {
-    'Admin Lobby': 600,
-    'Auditorium': 300,
-    'Hostel': 2300,
+    'Admin Lobby': 710,
+    'Auditorium': 1360,
+    'Hostel': 5000,
     'LAB_102': 15,
-    'LAB': 25,
-    'Library': 1000,
-    'Seminar Room': 100,
-    'WORKSHOP': 15,
-    'LAB_305': 100,
-    'Gym': 500,
-    'LAB_101': 130,
-    'Cafeteria': 700,
-    'LAB_A2': 8,
-    'LAB_A1': 180,
-    'Main Building': 300,
-    'Faculty Office': 500
+    'LAB': 30,
+    'Library': 2150,
+    'Seminar Room': 1800,
+    'WORKSHOP': 20,
+    'LAB_305': 30,
+    'Gym': 1012,
+    'LAB_101': 40,
+    'Cafeteria': 1360,
+    'LAB_A2': 12,
+    'LAB_A1': 20,
+    'Main Building': 30,
+    'Faculty Office': 650
 };
 
 const PREDICTION_INTERVAL_MINS = 15;
