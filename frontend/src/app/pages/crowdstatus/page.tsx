@@ -187,8 +187,6 @@ const fetchAllForecasts = async (
   const allLocationNames = Object.keys(BACKEND_CAPACITIES);
   const results: LocationStatus[] = [];
   const errors: string[] = [];
-  
-  // Calculate the target end time (future_time for the API)
   const calculatedEndTime = calculateEndTime(startTime, PREDICTION_INTERVAL_MINS);
   const dateTimeString = `${date}T${calculatedEndTime}`;
   const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -216,7 +214,7 @@ const fetchAllForecasts = async (
       });
 
       if (!res.ok) {
-        // If API returns an error for a specific location (e.g., no data), mark it as Error
+      
         const errData = await res.json();
         throw new Error(errData.error || `Status ${res.status}`);
       }
@@ -230,7 +228,7 @@ const fetchAllForecasts = async (
 
       results.push({
         name: locationName,
-        status: data.status, // Use the status provided directly by the backend
+        status: data.status,
         predictedCount: data.predicted_occupancy,
         capacity,
         linkId: encodeURIComponent(locationName),
@@ -239,7 +237,6 @@ const fetchAllForecasts = async (
       });
       
     } catch (err) {
-        // Handle fetch/API errors for this specific location
         errors.push(`'${locationName}' failed: ${(err as Error).message}`);
         results.push({
             name: locationName,
@@ -256,7 +253,6 @@ const fetchAllForecasts = async (
   setLoading(false);
   
   if (errors.length > 0) {
-      // Report main error summary if multiple failed, otherwise clear error
       setError(`Prediction complete, but ${errors.length} locations failed to forecast. See console for details.`);
       console.error("Location Fetch Errors:", errors);
   } else {
@@ -281,7 +277,6 @@ const TimeDisplay = () => {
   );
 };
 
-// --- Main Component ---
 export default function CrowdStatusPage() {
   const router = useRouter(); // Initialize router
   const initialTimes = getInitialTime();
@@ -395,36 +390,41 @@ export default function CrowdStatusPage() {
             </div>
 
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                <Clock className="w-4 h-4 text-emerald-400" />
-                Start Time
-              </label>
-
-              <TimePicker
-                disableClock
-                format="HH:mm"
-                onChange={(value) => {
-                  if (value) setStartTime(value); // HH:mm
-                }}
-                value={startTime.slice(0, 5)}
-                className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
-                clearIcon={null}
-                clockIcon={null}
-              />
-            </div>
+      
+                     <div className="space-y-2">
+                       <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                         <Clock className="w-4 h-4 text-emerald-400" />
+                         Start Time
+                       </label>
+                       <TimePicker
+                         disableClock
+                         format="HH:mm:ss"
+                         onChange={(value) => {
+                           if (value) setStartTime(value); 
+                         }}
+                         value={startTime.slice(0, 5)} // Show only HH:mm in the picker
+                         className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
+                         clearIcon={null}
+                         clockIcon={null}
+                       />
+                     </div>
 
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
                 <Clock className="w-4 h-4 text-blue-400" />
-                To Time (Target)
+                End Time (Prediction Target)
               </label>
-              <input
-                type="text"
-                readOnly
-                value={displayEndTime}
+               <TimePicker
+                disableClock
+                format="HH:mm:ss"
+                
+                disabled
+                 value={endTime.slice(0, 5)} 
                 className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg cursor-not-allowed"
+                clearIcon={null}
+                clockIcon={null}
               />
+           
             </div>
 
             <div className="h-full flex items-end col-span-2 lg:col-span-2">
@@ -541,7 +541,6 @@ export default function CrowdStatusPage() {
                       )}
                     </div>
 
-                    {/* Hover info panel */}
                     {isSelected && (
                       <div className="absolute -top-24 left-1/2 -translate-x-1/2 bg-slate-900 border-2 border-slate-700 rounded-xl p-4 min-w-[200px] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2">
                         <div className="text-center">
