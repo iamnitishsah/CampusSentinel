@@ -11,46 +11,42 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+const locations = [
+  { name: "Hostel", category: "Residential", capacity: "2300 students" },
+  { name: "Cafeteria", category: "Dining", capacity: "700 seats" },
+  { name: "Library", category: "Academic", capacity: "1000 seats" },
+  { name: "LAB_101", category: "Laboratory", capacity: "130 students" },
+  { name: "Gym", category: "Recreation", capacity: "500 students" },
+  { name: "LAB", category: "Laboratory", capacity: "25 students" },
+  { name: "Seminar Room", category: "Academic", capacity: "100 seats" },
+  { name: "Auditorium", category: "Event Space", capacity: "300 seats" },
+  { name: "Admin Lobby", category: "Administrative", capacity: "600 seats" },
+  { name: "LAB_305", category: "Laboratory", capacity: "100 students" },
+  { name: "LAB_102", category: "Laboratory", capacity: "15 students" },
+  { name: "WORKSHOP", category: "Laboratory", capacity: "15 students" },
+  { name: "LAB_A2", category: "Laboratory", capacity: "8 students" },
+  { name: "Main Building", category: "Administrative", capacity: "300 seats" },
+  { name: "LAB_A1", category: "Laboratory", capacity: "180 students" },
+  { name: "Faculty Office", category: "Administrative", capacity: "500 seats" },
+];
+
+
 const categoryColors: Record<string, string> = {
-  Residential: "from-blue-500 to-indigo-500",
-  Dining: "from-green-500 to-emerald-500",
-  Academic: "from-purple-500 to-violet-500",
-  Laboratory: "from-red-500 to-rose-500",
-  Recreation: "from-yellow-500 to-amber-500",
-  "Event Space": "from-cyan-500 to-teal-500",
-  Administrative: "from-gray-500 to-slate-500",
+  Residential: "from-blue-400/20 to-indigo-400/20",
+  Dining: "from-green-400/20 to-emerald-400/20",
+  Academic: "from-purple-400/20 to-violet-400/20",
+  Laboratory: "from-red-400/20 to-rose-400/20",
+  Recreation: "from-yellow-400/20 to-amber-400/20",
+  "Event Space": "from-cyan-400/20 to-teal-400/20",
+  Administrative: "from-gray-400/20 to-slate-400/20",
 };
 
-const locations = [
-  { name: "Hostel", category: "Residential", capacity: "5596 students" },
-  { name: "Cafeteria", category: "Dining", capacity: "6153 seats" },
-  { name: "Library", category: "Academic", capacity: "1951 seats" },
-  { name: "LAB_101", category: "Laboratory", capacity: "1012 students" },
-  { name: "Gym", category: "Recreation", capacity: "2255 students" },
-  { name: "LAB", category: "Laboratory", capacity: "92 students" },
-  { name: "Seminar Room", category: "Academic", capacity: "360 seats" },
-  { name: "Auditorium", category: "Event Space", capacity: "644 seats" },
-  { name: "Admin Lobby", category: "Administrative", capacity: "728 seats" },
-  { name: "LAB_305", category: "Laboratory", capacity: "1916 students" },
-  { name: "LAB_102", category: "Laboratory", capacity: "33 students" },
-  { name: "WORKSHOP", category: "Laboratory", capacity: "48 students" },
-  { name: "LAB_A2", category: "Laboratory", capacity: "38 students" },
-  { name: "Main Building", category: "Administrative", capacity: "776 seats" },
-  { name: "LAB_A1", category: "Laboratory", capacity: "1871 students" },
-  {
-    name: "Faculty Office",
-    category: "Administrative",
-    capacity: "681 students",
-  },
-];
 
 export default function LocationPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedCategory, setSelectedCategory] = useState("All");
-
   const categories = ["All", ...new Set(locations.map((loc) => loc.category))];
-
   const filteredLocations = locations.filter((location) => {
     const matchesSearch = location.name
       .toLowerCase()
@@ -59,9 +55,7 @@ export default function LocationPage() {
       selectedCategory === "All" || location.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
   const router = useRouter();
-
   const handleLocationClick = (location: string) => {
     router.push(`/pages/indivisuallocation/${encodeURIComponent(location)}`);
   };
@@ -179,7 +173,6 @@ export default function LocationPage() {
                 animation: `fadeIn 0.5s ease-out ${index * 0.05}s both`,
               }}
             >
-              {/* Gradient Accent */}
               <div
                 className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
                   categoryColors[location.category]

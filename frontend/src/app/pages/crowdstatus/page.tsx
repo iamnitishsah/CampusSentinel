@@ -14,12 +14,35 @@ import {
 } from "lucide-react";
 import TimePicker from "react-time-picker";
 import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const BACKEND_CAPACITIES: Record<string, number> = {
+    'Admin Lobby': 600,
+    'Auditorium': 300,
+    'Hostel': 2300,
+    'LAB_102': 15,
+    'LAB': 25,
+    'Library': 1000,
+    'Seminar Room': 100,
+    'WORKSHOP': 15,
+    'LAB_305': 100,
+    'Gym': 500,
+    'LAB_101': 130,
+    'Cafeteria': 700,
+    'LAB_A2': 8,
+    'LAB_A1': 180,
+    'Main Building': 300,
+    'Faculty Office': 500
+};
+
+const PREDICTION_INTERVAL_MINS = 15;
+const API_URL = "http://127.0.0.1:8000/api/forecast/";
 
 // --- Type Definitions and Constants ---
 
 interface LocationStatus {
   name: string;
-  status: "Normal" | "Overcrowded" | "Underused" | "Loading";
+  status: "Normal" | "Overcrowded" | "Underused" | "Loading" | "Error";
   predictedCount: number;
   capacity: number;
   linkId: string;
@@ -35,25 +58,7 @@ interface StatusConfig {
   icon: React.ComponentType<any>;
 }
 
-const locationCapacities: Record<string, number> = {
-  Hostel: 5596,
-  Cafeteria: 6153,
-  Library: 1951,
-  LAB_101: 1012,
-  Gym: 2255,
-  LAB: 92,
-  "Seminar Room": 360,
-  Auditorium: 644,
-  "Admin Lobby": 728,
-  LAB_305: 1916,
-  LAB_102: 33,
-  WORKSHOP: 48,
-  LAB_A2: 38,
-  "Main Building": 776,
-  LAB_A1: 1871,
-  "Faculty Office": 681,
-};
-
+// Keeping the mock layout for map visualization, as its logic is frontend-only
 const campusLayout: Record<string, { 
   x: number; 
   y: number; 
@@ -62,46 +67,41 @@ const campusLayout: Record<string, {
   height: number; 
   category: string; 
 }> = {
-  // 🏢 Administrative Zone (Top-left)
-  "Main Building": { x: 50, y: 50, width: 220, height: 185, rotation: 0, category: "Administrative" },
-  "Admin Lobby": { x: 30, y: 18, width: 130, height: 175, rotation: -1, category: "Administrative" },
-  "Faculty Office": { x: 40, y: 26, width: 150, height: 180, rotation: 1, category: "Administrative" },
+    // 🏢 Administrative Zone (Top-left)
+    "Main Building": { x: 50, y: 50, width: 220, height: 185, rotation: 0, category: "Administrative" },
+    "Admin Lobby": { x: 30, y: 18, width: 130, height: 175, rotation: -1, category: "Administrative" },
+    "Faculty Office": { x: 40, y: 26, width: 150, height: 180, rotation: 1, category: "Administrative" },
 
-  // 🎓 Academic Zone (Top-right)
-  "Library": { x: 33, y: 60, width: 200, height: 185, rotation: -1, category: "Academic" },
+    // 🎓 Academic Zone (Top-right)
+    "Library": { x: 33, y: 60, width: 200, height: 185, rotation: -1, category: "Academic" },
+    "Seminar Room": { x: 55, y: 15, width: 200, height: 190, rotation: 1, category: "Academic" },
 
-  
-  "Seminar Room": { x: 55, y: 15, width: 200, height: 190, rotation: 1, category: "Academic" },
+    // 🧪 Laboratory Zone (Middle-right)
+    "LAB_101": { x: 65, y: 40, width: 150, height: 175, rotation: -2, category: "Laboratory" },
+    "LAB_102": { x: 70, y: 64, width: 130, height: 180, rotation: 1, category: "Laboratory" },
+    "LAB_305": { x: 85, y: 45, width: 180, height: 185, rotation: 3, category: "Laboratory" },
+    "LAB_A1": { x: 80, y: 80, width: 140, height: 185, rotation: 1, category: "Laboratory" },
+    "LAB_A2": { x: 90, y: 66, width: 120, height: 175, rotation: -1, category: "Laboratory" },
+    "LAB": { x: 90, y: 22, width: 130, height: 180, rotation: -2, category: "Laboratory" },
+    "WORKSHOP": { x: 75, y: 18, width: 140, height: 175 ,rotation: 1, category: "Laboratory" },
 
-  // 🧪 Laboratory Zone (Middle-right)
-  "LAB_101": { x: 65, y: 40, width: 150, height: 175, rotation: -2, category: "Laboratory" },
-  "LAB_102": { x: 70, y: 64, width: 130, height: 180, rotation: 1, category: "Laboratory" },
-  "LAB_305": { x: 85, y: 45, width: 180, height: 185, rotation: 3, category: "Laboratory" },
-  "LAB_A1": { x: 80, y: 80, width: 140, height: 185, rotation: 1, category: "Laboratory" },
-  "LAB_A2": { x: 90, y: 66, width: 120, height: 175, rotation: -1, category: "Laboratory" },
-  "LAB": { x: 90, y: 22, width: 130, height: 180, rotation: -2, category: "Laboratory" },
-  "WORKSHOP": { x: 75, y: 18, width: 140, height: 175 ,rotation: 1, category: "Laboratory" },
+    // 🏠 Residential Zone (Bottom-left)
+    "Hostel": { x: 17, y: 45, width: 220, height: 160, rotation: -2, category: "Residential" },
 
-  // 🏠 Residential Zone (Bottom-left)
-  "Hostel": { x: 17, y: 45, width: 220, height: 160, rotation: -2, category: "Residential" },
+    // 🍽️ Dining & Recreation Zone (Bottom-middle)
+    "Cafeteria": { x: 15, y: 75, width: 160, height: 190, rotation: -2,  category: "Dining" },
+    "Gym": { x: 10, y: 15, width: 180, height: 180, rotation: 0, category: "Recreation" },
 
-  // 🍽️ Dining & Recreation Zone (Bottom-middle)
-  "Cafeteria": { x: 15, y: 75, width: 160, height: 190, rotation: -2,  category: "Dining" },
-  "Gym": { x: 10, y: 15, width: 180, height: 180, rotation: 0, category: "Recreation" },
-
-  // 🎭 Event Zone (Bottom-right)
-  "Auditorium": { x: 55, y: 74, width: 210, height: 190, rotation: -1, category: "Event Space" },
+    // 🎭 Event Zone (Bottom-right)
+    "Auditorium": { x: 55, y: 74, width: 210, height: 190, rotation: -1, category: "Event Space" },
 };
-
-
-
 
 
 // --- Helper Functions ---
 const calculateEndTime = (startTime: string, intervalMins: number) => {
   if (!startTime) return "";
   const parts = startTime.split(":").map(Number);
-  const hours = parts[0];
+  const hours = parts[0] || 0;
   const minutes = parts[1] || 0;
   const seconds = parts[2] || 0;
 
@@ -119,11 +119,15 @@ const calculateEndTime = (startTime: string, intervalMins: number) => {
 const getInitialTime = () => {
   const now = new Date();
   const hours = now.getHours().toString().padStart(2, "0");
-  const minutes = Math.floor(now.getMinutes() / 15) * 15;
-  const startMins = minutes.toString().padStart(2, "0");
+  // Snap to the next 15-minute interval
+  const minutes = Math.ceil(now.getMinutes() / PREDICTION_INTERVAL_MINS) * PREDICTION_INTERVAL_MINS;
+  const initialTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), minutes, 0, 0);
 
-  const initialStartTime = `${hours}:${startMins}:00`;
-  const initialEndTime = calculateEndTime(initialStartTime, 15);
+  const startHours = initialTime.getHours().toString().padStart(2, "0");
+  const startMins = initialTime.getMinutes().toString().padStart(2, "0");
+  const initialStartTime = `${startHours}:${startMins}:00`;
+
+  const initialEndTime = calculateEndTime(initialStartTime, PREDICTION_INTERVAL_MINS);
   const dateStr = now.toISOString().split("T")[0];
 
   return {
@@ -151,6 +155,15 @@ const getStatusConfig = (status: LocationStatus["status"]): StatusConfig => {
         glowClass: "shadow-blue-500/50",
         icon: Users,
       };
+    case "Error":
+      return {
+        textClass: "text-yellow-400",
+        bgClass: "bg-yellow-500/20",
+        borderClass: "border-yellow-500",
+        glowClass: "shadow-yellow-500/50",
+        icon: AlertTriangle,
+      };
+    case "Normal":
     default:
       return {
         textClass: "text-emerald-400",
@@ -162,47 +175,92 @@ const getStatusConfig = (status: LocationStatus["status"]): StatusConfig => {
   }
 };
 
-// --- API MOCK/FETCH Logic ---
+// --- API FETCH Logic (Sequential Calls) ---
 const fetchAllForecasts = async (
   date: string,
   startTime: string,
-  capacities: Record<string, number>,
   setLoading: (b: boolean) => void,
   setError: (s: string | null) => void
 ): Promise<LocationStatus[]> => {
   setLoading(true);
   setError(null);
+  const allLocationNames = Object.keys(BACKEND_CAPACITIES);
   const results: LocationStatus[] = [];
+  const errors: string[] = [];
+  
+  // Calculate the target end time (future_time for the API)
+  const calculatedEndTime = calculateEndTime(startTime, PREDICTION_INTERVAL_MINS);
+  const dateTimeString = `${date}T${calculatedEndTime}`;
+  const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
+  
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("access")}`,
+  };
 
-  try {
-    for (const [locationName, capacity] of Object.entries(capacities)) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.random() * 120 + 40)
-      );
 
-      const predictionFactor = 0.6 + Math.random() * 0.6;
-      let predictedCount = Math.floor(capacity * predictionFactor);
+  for (const locationName of allLocationNames) {
+    const capacity = BACKEND_CAPACITIES[locationName] || 0;
+    const layout = campusLayout[locationName] || { x: 50, y: 50, width: 100, height: 80 };
+    
+    try {
+      const payload = {
+        location_id: locationName,
+        future_time: futureTimestamp,
+      };
 
-      let status: LocationStatus["status"] = "Normal";
-      if (predictedCount > capacity * 1.0) status = "Overcrowded";
-      else if (predictedCount < capacity * 0.3) status = "Underused";
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify(payload),
+      });
 
-      const layout = campusLayout[locationName] || { x: 50, y: 50, width: 100, height: 80 };
+      if (!res.ok) {
+        // If API returns an error for a specific location (e.g., no data), mark it as Error
+        const errData = await res.json();
+        throw new Error(errData.error || `Status ${res.status}`);
+      }
+      
+      const data: {
+        location_name: string;
+        predicted_occupancy: number;
+        status: 'Overcrowded' | 'Underused' | 'Normal';
+        explanation: string;
+      } = await res.json();
 
       results.push({
         name: locationName,
-        status,
-        predictedCount,
+        status: data.status, // Use the status provided directly by the backend
+        predictedCount: data.predicted_occupancy,
         capacity,
         linkId: encodeURIComponent(locationName),
         position: { x: layout.x, y: layout.y, rotation: layout.rotation },
         size: { width: layout.width, height: layout.height },
       });
+      
+    } catch (err) {
+        // Handle fetch/API errors for this specific location
+        errors.push(`'${locationName}' failed: ${(err as Error).message}`);
+        results.push({
+            name: locationName,
+            status: "Error",
+            predictedCount: 0,
+            capacity,
+            linkId: encodeURIComponent(locationName),
+            position: { x: layout.x, y: layout.y, rotation: layout.rotation },
+            size: { width: layout.width, height: layout.height },
+        });
     }
-  } catch (err) {
-    setError(`Failed to fetch forecasts: ${(err as Error).message}`);
-  } finally {
-    setLoading(false);
+  }
+  
+  setLoading(false);
+  
+  if (errors.length > 0) {
+      // Report main error summary if multiple failed, otherwise clear error
+      setError(`Prediction complete, but ${errors.length} locations failed to forecast. See console for details.`);
+      console.error("Location Fetch Errors:", errors);
+  } else {
+      setError(null);
   }
 
   return results;
@@ -225,6 +283,7 @@ const TimeDisplay = () => {
 
 // --- Main Component ---
 export default function CrowdStatusPage() {
+  const router = useRouter(); // Initialize router
   const initialTimes = getInitialTime();
 
   const [selectedDate, setSelectedDate] = useState(initialTimes.date);
@@ -237,7 +296,9 @@ export default function CrowdStatusPage() {
 
   useEffect(() => {
     if (startTime) {
-      const newEnd = calculateEndTime(startTime, 15);
+      // The TimePicker returns HH:mm, so we ensure full format for calculation
+      const fullStartTime = startTime.length === 5 ? `${startTime}:00` : startTime; 
+      const newEnd = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
       setEndTime(newEnd);
     }
   }, [startTime]);
@@ -252,16 +313,22 @@ export default function CrowdStatusPage() {
     const results = await fetchAllForecasts(
       selectedDate,
       startTime,
-      locationCapacities,
       setLoading,
       setError
     );
     setLocationStatuses(results);
   }, [selectedDate, startTime]);
 
+  // Initial fetch on component mount
   useEffect(() => {
     handleRunPrediction();
-  }, []);
+  }, [handleRunPrediction]);
+
+
+  const handleLocationClick = (linkId: string) => {
+    // Redirect to the individual location prediction page
+    router.push(`/pages/location/${linkId}`); 
+  };
 
   const displayEndTime = endTime
     ? endTime.split(":").slice(0, 2).join(":")
@@ -285,12 +352,19 @@ export default function CrowdStatusPage() {
                   Campus Location
                 </h1>
                 <p className="text-sm text-slate-400 font-medium">
-                  3D Spatial Overview
+                  3D Spatial Overview ({PREDICTION_INTERVAL_MINS}-min Forecast)
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <TimeDisplay />
+              {/* Back button (Placeholder, assuming this page is a dashboard item) */}
+              <button
+                onClick={() => router.push("/pages/dashboard")}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-700/70 transition-colors"
+              >
+                  <ArrowLeft className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -321,35 +395,34 @@ export default function CrowdStatusPage() {
             </div>
 
 
-         
-                   <div className="space-y-2">
-                     <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-                       <Clock className="w-4 h-4 text-emerald-400" />
-                       Start Time
-                     </label>
-       
-                     <TimePicker
-                       disableClock
-                       format="HH:mm:ss"
-                       onChange={(value) => {
-                         if (value) setStartTime(value); // value already in HH:mm:ss format
-                       }}
-                       value={startTime}
-                       className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
-                       clearIcon={null}
-                       clockIcon={null}
-                     />
-                   </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                Start Time
+              </label>
+
+              <TimePicker
+                disableClock
+                format="HH:mm"
+                onChange={(value) => {
+                  if (value) setStartTime(value); // HH:mm
+                }}
+                value={startTime.slice(0, 5)}
+                className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
+                clearIcon={null}
+                clockIcon={null}
+              />
+            </div>
 
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
                 <Clock className="w-4 h-4 text-blue-400" />
-                To Time
+                To Time (Target)
               </label>
               <input
                 type="text"
                 readOnly
-                value={endTime}
+                value={displayEndTime}
                 className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg cursor-not-allowed"
               />
             </div>
@@ -388,15 +461,12 @@ export default function CrowdStatusPage() {
               Campus 3D Map View
             </h3>
             <span className="ml-auto text-slate-400 text-sm">
-              {new Date(selectedDate).toLocaleDateString()} at {displayEndTime}
+              {new Date(selectedDate).toLocaleDateString()} Forecast for {displayEndTime}
             </span>
           </div>
 
           {/* Map Container */}
           <div className="relative w-full h-[1000px] bg-gradient-to-br from-green-900/20 via-green-800/10 to-emerald-900/20 rounded-3xl border-2 border-slate-700/50 overflow-hidden shadow-2xl">
-       
-
-
             {/* Buildings */}
             {locationStatuses.map((location) => {
               const statusConfig = getStatusConfig(location.status);
@@ -417,6 +487,7 @@ export default function CrowdStatusPage() {
                   }}
                   onMouseEnter={() => setSelectedLocation(location.name)}
                   onMouseLeave={() => setSelectedLocation(null)}
+                  onClick={() => handleLocationClick(location.linkId)} // Redirect on click
                 >
              
                   
@@ -512,6 +583,10 @@ export default function CrowdStatusPage() {
           <div className="flex items-center gap-3">
             <div className="w-4 h-4 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50" />
             <span className="text-sm font-medium text-slate-300">Underused</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 bg-yellow-500 rounded-full shadow-lg shadow-yellow-500/50" />
+            <span className="text-sm font-medium text-slate-300">Error/No Data</span>
           </div>
         </div>
       </main>

@@ -9,7 +9,6 @@ import {
   CheckCircle,
   ChevronDown,
   Clock,
-  Eye,
   MapPin,
   TrendingUp,
   Users,
@@ -17,21 +16,38 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import TimePicker from "react-time-picker";
-import {
-  RadialBar,
-  RadialBarChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from "recharts";
+
+// --- BACKEND-DRIVEN CONFIGURATION (Must match views.py) ---
+// This ensures that the frontend's status calculation aligns with the backend's internal logic.
+const BACKEND_CAPACITIES: Record<string, number> = {
+    'Admin Lobby': 600,
+    'Auditorium': 300,
+    'Hostel': 2300,
+    'LAB_102': 15,
+    'LAB': 25,
+    'Library': 1000,
+    'Seminar Room': 100,
+    'WORKSHOP': 15,
+    'LAB_305': 100,
+    'Gym': 500,
+    'LAB_101': 130,
+    'Cafeteria': 700,
+    'LAB_A2': 8,
+    'LAB_A1': 180,
+    'Main Building': 300,
+    'Faculty Office': 500
+};
+const DEFAULT_CAPACITY = 100; // Fallback for unknown locations
+const PREDICTION_INTERVAL_MINS = 15; // Fixed interval to align with FE logic for BE payload
 
 // --- Type Definitions ---
 interface LocationData {
   location_name: string;
   capacity: number;
   predicted_occupancy: number;
-  status: string;
+  status: 'Overcrowded' | 'Underused' | 'Normal' | string;
   explanation: string;
-  current_occupancy: number;
 }
 
 interface StatusConfig {
@@ -80,27 +96,62 @@ const TimeDisplay: React.FC = () => {
   );
 };
 
-// --- Location Capacities (MOCK/DEMO DATA) ---
-const locationCapacities: Record<string, number> = {
-  Hostel: 5596,
-  Cafeteria: 6153,
-  Library: 1951,
-  LAB_101: 1012,
-  Gym: 2255,
-  LAB: 92,
-  "Seminar Room": 360,
-  Auditorium: 644,
-  "Admin Lobby": 728,
-  LAB_305: 1916,
-  LAB_102: 33,
-  WORKSHOP: 48,
-  LAB_A2: 38,
-  "Main Building": 776,
-  LAB_A1: 1871,
-  "Faculty Office": 681,
+
+// --- Occupancy Gauge Chart Components ---
+
+const getStatusColorClass = (status: string): StatusConfig => {
+  switch (status) {
+    case "Overcrowded":
+      return {
+        text: "text-red-400",
+        bg: "bg-red-500/10",
+        border: "border-red-500/30",
+        icon: AlertTriangle,
+      };
+    case "Underused":
+      return {
+        text: "text-blue-400",
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/30",
+        icon: Users,
+      };
+    case "Normal":
+    default:
+      return {
+        text: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/30",
+        icon: CheckCircle,
+      };
+  }
 };
 
-// --- Occupancy Gauge Chart ---
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  predictedCount,
+  status,
+}) => {
+  if (active && payload && payload.length) {
+    const dataPoint = payload[0].payload;
+    if (dataPoint.name === "Predicted") {
+      return (
+        <div className="p-4 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl">
+          <p className="font-bold text-white mb-1">
+            Predicted: {dataPoint.value}%
+          </p>
+          <p className="text-slate-300 text-sm">
+            Count: {predictedCount} people
+          </p>
+          <p className="text-slate-300 text-sm">Status: {status}</p>
+        </div>
+      );
+    }
+  }
+  return null;
+};
+
+
 const OccupancyGaugeChart: React.FC<OccupancyChartProps> = ({
   predictedCount,
   capacity,
@@ -111,40 +162,11 @@ const OccupancyGaugeChart: React.FC<OccupancyChartProps> = ({
     Math.round((predictedCount / capacity) * 100)
   );
 
-  let color = "#10b981"; // green
-  if (status === "Overcrowded" || status === "CRITICAL") {
-    color = "#ef4444"; // red
-  } else if (status === "Underused") {
-    color = "#3b82f6"; // blue
-  }
+  const statusConfig = getStatusColorClass(status);
+  const color = statusConfig.text.replace('text-', '#').replace('-400', ''); // Map to a simple hex for chart
 
   // Radial chart data requires the percentage value
   const chartData = [{ name: "Predicted", value: percentage, fill: color }];
-
-  const CustomTooltip: React.FC<CustomTooltipProps> = ({
-    active,
-    payload,
-    predictedCount,
-    status,
-  }) => {
-    if (active && payload && payload.length) {
-      const dataPoint = payload[0].payload;
-      if (dataPoint.name === "Predicted") {
-        return (
-          <div className="p-4 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl">
-            <p className="font-bold text-white mb-1">
-              Predicted: {dataPoint.value}%
-            </p>
-            <p className="text-slate-300 text-sm">
-              Count: {predictedCount} people
-            </p>
-            <p className="text-slate-300 text-sm">Status: {status}</p>
-          </div>
-        );
-      }
-    }
-    return null;
-  };
 
   return (
     <div className="relative h-80 w-full flex items-center justify-center">
@@ -194,34 +216,40 @@ const OccupancyGaugeChart: React.FC<OccupancyChartProps> = ({
   );
 };
 
-// --- Helper for default times ---
+
+// --- Helper Functions ---
 const calculateEndTime = (startTime: string, intervalMins: number) => {
   if (!startTime) return "";
-  // Split expects HH:MM:SS or HH:MM
   const parts = startTime.split(":").map(Number);
-  const hours = parts[0];
-  const minutes = parts[1];
+  const hours = parts[0] || 0;
+  const minutes = parts[1] || 0;
+  const seconds = parts[2] || 0; // Handle optional seconds
 
   const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
+  date.setHours(hours, minutes, seconds, 0);
 
-  // Add the interval (15 minutes)
   const futureTime = new Date(date.getTime() + intervalMins * 60000);
 
   const endHours = futureTime.getHours().toString().padStart(2, "0");
   const endMins = futureTime.getMinutes().toString().padStart(2, "0");
+  const endSecs = futureTime.getSeconds().toString().padStart(2, "0");
 
-  return `${endHours}:${endMins}`;
+  return `${endHours}:${endMins}:${endSecs}`;
 };
 
 const getInitialTime = () => {
   const now = new Date();
-  const hours = now.getHours().toString().padStart(2, "0");
-  const minutes = Math.floor(now.getMinutes() / 15) * 15;
-  const startMins = minutes.toString().padStart(2, "0");
+  const hours = now.getHours();
+  // Snap to the next 15-minute interval
+  const minutes = Math.ceil(now.getMinutes() / PREDICTION_INTERVAL_MINS) * PREDICTION_INTERVAL_MINS;
+  
+  const initialTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
 
-  const initialStartTime = `${hours}:${startMins}`;
-  const initialEndTime = calculateEndTime(initialStartTime, 15);
+  const startHours = initialTime.getHours().toString().padStart(2, "0");
+  const startMins = initialTime.getMinutes().toString().padStart(2, "0");
+  const initialStartTime = `${startHours}:${startMins}:00`;
+
+  const initialEndTime = calculateEndTime(initialStartTime, PREDICTION_INTERVAL_MINS);
 
   // Default to today's date
   const dateStr = now.toISOString().split("T")[0];
@@ -238,6 +266,7 @@ const getInitialTime = () => {
 export default function IndividualLocationPage() {
   const params = useParams();
   const router = useRouter();
+
   // Get location name from URL parameter
   const locationName = decodeURIComponent(params.id as string);
 
@@ -247,7 +276,9 @@ export default function IndividualLocationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const intervalMins = 15;
+
+  // Get fixed capacity for this location from the backend config copy
+  const LOCATION_CAPACITY = BACKEND_CAPACITIES[locationName] || DEFAULT_CAPACITY;
 
   // --- Date and Time States ---
   const initialTimes = getInitialTime();
@@ -255,151 +286,117 @@ export default function IndividualLocationPage() {
   const [startTime, setStartTime] = useState(initialTimes.startTime);
   const [endTime, setEndTime] = useState(initialTimes.endTime);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  // --- Current Occupancy (Mocked from current state) ---
-  const [currentOccupancy, setCurrentOccupancy] = useState(0);
 
   // 1. Effect to automatically calculate endTime whenever startTime changes
   useEffect(() => {
-    setEndTime(calculateEndTime(startTime, intervalMins));
+    // The TimePicker returns HH:mm, so we append :00 for consistency
+    const fullStartTime = startTime.length === 5 ? `${startTime}:00` : startTime; 
+    setEndTime(calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS));
   }, [startTime]);
 
-  // 2. Initial Data Fetch (Run on load)
+  // 2. Initial Data Fetch: Runs an initial prediction when the page loads
   useEffect(() => {
-    // Use a local helper to run the fetch when needed, as fetchForecast is part of useCallback
-    const runInitialFetch = async () => {
-      // Initial fetch logic to populate the page on load
-      if (!hasSubmitted && !locationDetails) {
-        await fetchForecast();
-      }
-    };
-    runInitialFetch();
-  }, [locationName]);
-
-  const getStatusColorClass = (status: string): StatusConfig => {
-    switch (status) {
-      case "CRITICAL":
-      case "Overcrowded":
-        return {
-          text: "text-red-400",
-          bg: "bg-red-500/10",
-          border: "border-red-500/30",
-          icon: AlertTriangle,
-        };
-      case "Underused":
-        return {
-          text: "text-blue-400",
-          bg: "bg-blue-500/10",
-          border: "border-blue-500/30",
-          icon: Users,
-        };
-      default:
-        return {
-          text: "text-emerald-400",
-          bg: "bg-emerald-500/10",
-          border: "border-emerald-500/30",
-          icon: CheckCircle,
-        };
+    // Check if the location is known, otherwise, show an error.
+    if (!BACKEND_CAPACITIES[locationName]) {
+        setError(`Location "${locationName}" is not recognized in the backend configuration.`);
+        setHasSubmitted(true); // Stop showing initial loading/prompt
+        return;
     }
-  };
 
-  const fetchForecast = useCallback(async () => {
-    if (!selectedDate || !startTime) {
+    if (!hasSubmitted && !locationDetails) {
+        // Run initial fetch on load using current time
+        fetchForecast(selectedDate, startTime);
+    }
+  }, [locationName, selectedDate, startTime]); // Dependencies for initial run
+
+
+  const fetchForecast = useCallback(async (date: string, time: string) => {
+    if (!date || !time) {
       setError("Please select both date and time");
       return;
     }
 
     setLoading(true);
     setError(null);
-
-    const CAPACITY = locationCapacities[locationName] || 100;
-
-    // --- Mocking Current Occupancy (Updated to reflect a new state) ---
-    const current = Math.floor(CAPACITY * (0.1 + Math.random() * 0.7));
-    setCurrentOccupancy(current);
-    // -------------------------------------------------------------------
-
-    let latestPrediction = 0;
-    let latestStatus = "Normal";
-    let fullExplanation = "Explanation pending...";
+    setHasSubmitted(true); // Mark as submitted to show results layout
 
     try {
-      // Construct times
-      const now = new Date(selectedDate + "T00:00:00");
-      const startDateTime = new Date(now.toDateString() + " " + startTime);
-      const endDateTime = new Date(now.toDateString() + " " + endTime);
-
-      const futureTimestamp = endDateTime
-        .toISOString()
-        .replace(/\.\d{3}Z$/, "Z");
+      // Construct End Time for the payload (which is 15 mins after the selected Start Time)
+      const fullStartTime = time.length === 5 ? `${time}:00` : time;
+      const calculatedEndTime = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
+      
+      // The backend expects the prediction time to be the END of the window (calculatedEndTime)
+      const dateTimeString = `${date}T${calculatedEndTime}`; 
+      
+      // Ensure the timestamp is in a format the backend expects (ISO 8601 with Z)
+      // The backend will handle the necessary timezone conversion internally.
+      const futureTimestamp = new Date(dateTimeString).toISOString().replace(/\.\d{3}Z$/, "Z");
 
       const payload = {
-        location_name: locationName,
-        future_timestamp: futureTimestamp,
+        location_id: locationName,
+        future_time: futureTimestamp,
       };
 
-      /*
-      // ** UNCOMMENT FOR REAL BACKEND TESTING **
-      const res = await fetch("http://127.0.0.1:8000/api/forecast/space/", {
-          method: "POST",
-          headers: authHeaders,
-          body: JSON.stringify(payload),
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
+      };
+
+      const res = await fetch("http://127.0.0.1:8000/api/forecast/", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || `Failed to fetch forecast data.`);
+        const errData = await res.json();
+        throw new Error(errData.error || `Failed to fetch forecast data.`);
       }
-      const data: { location_name: string, predicted_occupancy: number, status: string, capacity: number } = await res.json();
+      const data: {
+        location_name: string;
+        predicted_occupancy: number;
+        status: 'Overcrowded' | 'Underused' | 'Normal' | string;
+        explanation: string;
+      } = await res.json();
 
-      latestPrediction = data.predicted_occupancy;
-      latestStatus = data.status;
-      // We would also fetch the explanation from a dedicated AI endpoint here
-      */
+      setLocationDetails({
+        location_name: data.location_name,
+        // CRITICAL FIX: Use the backend's known capacity for accurate FE visualization
+        capacity: LOCATION_CAPACITY, 
+        predicted_occupancy: data.predicted_occupancy,
+        // Use the status label directly from the backend
+        status: data.status,
+        explanation: data.explanation,
+      });
+      
+      setLoading(false);
+      setStartTime(time); // Update state only on successful submission
+      // setEndTime is handled by the useEffect on startTime change
+      setSelectedDate(date);
 
-      // --- MOCK DATA GENERATION ---
-      const predictionFactor = 0.6 + Math.random() * 0.6;
-      latestPrediction = Math.floor(CAPACITY * predictionFactor);
-
-      if (latestPrediction > CAPACITY * 1.05) latestStatus = "CRITICAL";
-      else if (latestPrediction > CAPACITY * 0.8) latestStatus = "Overcrowded";
-      else if (latestPrediction < CAPACITY * 0.3) latestStatus = "Underused";
-      else latestStatus = "Normal";
-
-      // Generate mock explanation based on the predicted status
-      fullExplanation = `The AI model, utilizing deep time-series analysis (Random Forest Regressor), projects **${latestPrediction} occupants** at ${endTime} on ${new Date(
-        selectedDate
-      ).toLocaleDateString("en-US", {
-        weekday: "long",
-      })}. This prediction results in a **${latestStatus}** status. The rationale is based on correlation with historical class schedules and known movement choke points at this specific time slot, indicating a predictable peak or trough in campus traffic.`;
-      // --- END MOCK DATA GENERATION ---
-
-      setTimeout(() => {
-        setLocationDetails({
-          location_name: locationName,
-          capacity: CAPACITY,
-          predicted_occupancy: latestPrediction,
-          status: latestStatus,
-          explanation: fullExplanation,
-          current_occupancy: current,
-        });
-        setHasSubmitted(true);
-        setLoading(false);
-      }, 1000); // Simulate API latency
     } catch (error) {
       console.error("Error fetching forecast:", error);
-      setError("Failed to fetch forecast data. Please try again.");
+      setError("Failed to fetch forecast data. The backend returned an error or is unreachable. Check console for details.");
       setLoading(false);
     }
-  }, [locationName, selectedDate, startTime, endTime]);
+  }, [locationName, LOCATION_CAPACITY]);
 
-  // If page is loading for the first time, show loading screen
-  if (!hasSubmitted && loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-      </div>
-    );
+
+  // Handler for user submission
+  const handleSubmit = () => {
+    if (selectedDate && startTime) {
+      fetchForecast(selectedDate, startTime);
+    } else {
+      setError("Please select both date and time");
+    }
+  };
+
+
+  // If the location is not in the hardcoded list, show an error.
+  if (hasSubmitted && !BACKEND_CAPACITIES[locationName] && !error) {
+    setError(`Location "${locationName}" is not a valid location in the backend system.`);
   }
+
 
   const status = locationDetails
     ? getStatusColorClass(locationDetails.status)
@@ -423,19 +420,19 @@ export default function IndividualLocationPage() {
                   {locationName}
                 </h2>
                 <p className="text-slate-400 mt-1">
-                  Real-time occupancy monitoring and AI-powered forecasting
+                  AI-powered crowd forecasting based on a fixed {PREDICTION_INTERVAL_MINS}-minute window.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <TimeDisplay /> {/* Integrated Real-Time Clock */}
+              <TimeDisplay />
               <button
                 onClick={() => router.push("/pages/dashboard")}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-600/50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <ArrowLeft className="w-4 h-4 text-slate-300" />
                 <span className="hidden sm:inline text-slate-200 font-medium">
-                  Dashboard
+                  back to Dashboard
                 </span>
               </button>
             </div>
@@ -479,9 +476,10 @@ export default function IndividualLocationPage() {
                 disableClock
                 format="HH:mm:ss"
                 onChange={(value) => {
-                  if (value) setStartTime(value); // value already in HH:mm:ss format
+                  // value is HH:mm
+                  if (value) setStartTime(value); 
                 }}
-                value={startTime}
+                value={startTime.slice(0, 5)} // Show only HH:mm in the picker
                 className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg transition-all"
                 clearIcon={null}
                 clockIcon={null}
@@ -492,22 +490,25 @@ export default function IndividualLocationPage() {
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-300">
                 <Clock className="w-4 h-4 text-blue-400" />
-                End Time
+                End Time (Prediction Target)
               </label>
-              <input
-                type="time"
-                step="1"
-                value={endTime}
-                readOnly
+               <TimePicker
+                disableClock
+                format="HH:mm:ss"
+                
                 disabled
+                 value={endTime.slice(0, 5)} 
                 className="w-full px-4 py-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-slate-400 font-mono text-lg cursor-not-allowed"
+                clearIcon={null}
+                clockIcon={null}
               />
+           
             </div>
 
             {/* Run Prediction Button Container */}
             <div className="flex items-end pt-4 lg:pt-0">
               <button
-                onClick={fetchForecast}
+                onClick={handleSubmit}
                 disabled={loading || !selectedDate || !startTime}
                 className="w-full h-12 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/30 hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -534,31 +535,31 @@ export default function IndividualLocationPage() {
           )}
         </div>
 
-        {/* Results Section - Only show after submission */}
-        {hasSubmitted && locationDetails && (
+        {/* Results Section - Only show after successful submission */}
+        {hasSubmitted && locationDetails && !loading && !error && (
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* 2. Predicted Occupancy */}
-              <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
+              {/* 1. Predicted Occupancy */}
+              <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-all hover:scale-105">
                 <div className="flex items-center justify-between mb-4">
                   <div className="bg-cyan-500/10 p-3 rounded-xl border border-cyan-500/30">
                     <TrendingUp className="w-7 h-7 text-cyan-400" />
                   </div>
                 </div>
                 <p className="text-slate-400 text-sm mb-1">
-                  Predicted Count (by {endTime})
+                  Predicted Count (by {endTime.slice(0, 5)})
                 </p>
                 <p className="text-3xl font-bold text-white">
                   {locationDetails.predicted_occupancy}
                 </p>
               </div>
 
-              {/* 3. Status */}
+              {/* 2. Status */}
               <div
                 className={`bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border ${
                   status?.border || ""
-                } rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all hover:scale-105`}
+                } rounded-2xl p-6 shadow-xl transition-all hover:scale-105`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div
@@ -577,8 +578,21 @@ export default function IndividualLocationPage() {
                 </p>
               </div>
 
+              {/* 3. Max Capacity */}
+              <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-all hover:scale-105">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/30">
+                    <Users className="w-7 h-7 text-blue-400" />
+                  </div>
+                </div>
+                <p className="text-slate-400 text-sm mb-1">Max Capacity (BE Config)</p>
+                <p className="text-3xl font-bold text-white">
+                  {LOCATION_CAPACITY}
+                </p>
+              </div>
+
               {/* 4. Report Time */}
-              <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
+              <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-all hover:scale-105">
                 <div className="flex items-center justify-between mb-4">
                   <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30">
                     <Clock className="w-7 h-7 text-emerald-400" />
@@ -600,17 +614,16 @@ export default function IndividualLocationPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/30 group-hover:bg-cyan-500/20 transition-colors">
-                      <Eye className="w-5 h-5 text-cyan-400" />
+                      <ChevronDown
+                        className={`w-5 h-5 text-cyan-400 transition-transform duration-300 ${
+                          showExplanation ? "rotate-180" : ""
+                        }`}
+                      />
                     </div>
                     <span className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
                       AI Prediction Rationale (Explainable AI)
                     </span>
                   </div>
-                  <ChevronDown
-                    className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
-                      showExplanation ? "rotate-180" : ""
-                    }`}
-                  />
                 </button>
                 <div
                   className={`overflow-hidden transition-all duration-500 ${
@@ -620,7 +633,7 @@ export default function IndividualLocationPage() {
                   }`}
                 >
                   <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
-                    <p className="text-slate-300 leading-relaxed">
+                    <p className="text-slate-300 leading-relaxed whitespace-pre-line">
                       {locationDetails.explanation}
                     </p>
                   </div>
@@ -640,18 +653,11 @@ export default function IndividualLocationPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Gauge Chart */}
                 <div className="flex items-center justify-center">
-                  {locationDetails.predicted_occupancy > 0 ? (
-                    <OccupancyGaugeChart
-                      predictedCount={locationDetails.predicted_occupancy}
-                      capacity={locationDetails.capacity}
-                      status={locationDetails.status}
-                    />
-                  ) : (
-                    <div className="h-72 flex items-center justify-center text-slate-500">
-                      <TrendingUp className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                      <p>No valid forecast data available.</p>
-                    </div>
-                  )}
+                  <OccupancyGaugeChart
+                    predictedCount={locationDetails.predicted_occupancy}
+                    capacity={LOCATION_CAPACITY}
+                    status={locationDetails.status}
+                  />
                 </div>
 
                 {/* Prediction Details/Legend */}
@@ -663,15 +669,15 @@ export default function IndividualLocationPage() {
                     <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
                       <p className="text-xs text-slate-400 mb-1">Time Window</p>
                       <p className="text-lg font-mono text-cyan-400">
-                        {startTime} - {endTime}
+                        {startTime.slice(0, 5)} - {endTime.slice(0, 5)}
                       </p>
                     </div>
                     <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
                       <p className="text-xs text-slate-400 mb-1">
-                        Max Capacity
+                        Max Capacity (BE)
                       </p>
                       <p className="text-lg font-mono text-white">
-                        {locationDetails.capacity}
+                        {LOCATION_CAPACITY}
                       </p>
                     </div>
                   </div>
@@ -691,13 +697,15 @@ export default function IndividualLocationPage() {
                         Forecasted Count
                       </p>
                       <p className="text-sm text-slate-400">
-                        Prediction for {endTime} :
-                        {locationDetails.predicted_occupancy} people (
+                        Prediction for {endTime.slice(0, 5)} :
+                        <span className="font-mono font-bold ml-1">
+                          {locationDetails.predicted_occupancy}
+                        </span> people (
                         {Math.min(
                           100,
                           Math.round(
                             (locationDetails.predicted_occupancy /
-                              locationDetails.capacity) *
+                              LOCATION_CAPACITY) *
                               100
                           )
                         )}
@@ -711,8 +719,8 @@ export default function IndividualLocationPage() {
           </>
         )}
 
-        {/* Initial State - Before Submission */}
-        {!hasSubmitted && !loading && (
+        {/* Initial State - Before Submission (only if no error and no initial fetch success) */}
+        {!hasSubmitted && !loading && !error && (
           <div className="text-center py-16">
             <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-12 inline-block">
               <TrendingUp className="w-20 h-20 text-slate-600 mx-auto mb-6" />
