@@ -67,7 +67,6 @@ interface CustomTooltipProps {
   status: string;
 }
 
-// --- Real-Time Clock Component ---
 const TimeDisplay: React.FC = () => {
   const [time, setTime] = useState("");
 
@@ -160,7 +159,6 @@ const OccupancyGaugeChart: React.FC<OccupancyChartProps> = ({
   const statusConfig = getStatusColorClass(status);
   const color = statusConfig.text.replace('text-', '#').replace('-400', ''); // Map to a simple hex for chart
 
-  // Radial chart data requires the percentage value
   const chartData = [{ name: "Predicted", value: percentage, fill: color }];
 
   return (
@@ -211,8 +209,6 @@ const OccupancyGaugeChart: React.FC<OccupancyChartProps> = ({
   );
 };
 
-
-// --- Helper Functions ---
 const calculateEndTime = (startTime: string, intervalMins: number) => {
   if (!startTime) return "";
   const parts = startTime.split(":").map(Number);
@@ -284,20 +280,13 @@ export default function IndividualLocationPage() {
     const fullStartTime = startTime.length === 5 ? `${startTime}:00` : startTime; 
     setEndTime(calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS));
   }, [startTime]);
-  useEffect(() => {
-    if (!BACKEND_CAPACITIES[locationName]) {
-        setError(`Location "${locationName}" is not recognized in the backend configuration.`);
-        setHasSubmitted(true); 
-        return;
-    }
 
-    if (!hasSubmitted && !locationDetails) {
-       
-        fetchForecast(selectedDate, startTime);
-    }
-  }, [locationName, selectedDate, startTime]); 
-
-
+useEffect(() => {
+  if (!BACKEND_CAPACITIES[locationName]) {
+    setError(`Location "${locationName}" is not recognized in the backend configuration.`);
+    setHasSubmitted(true);
+  }
+}, [locationName]);
   const fetchForecast = useCallback(async (date: string, time: string) => {
     if (!date || !time) {
       setError("Please select both date and time");
@@ -500,13 +489,11 @@ const futureTimestamp = new Date(
     clockIcon={null}
   />
 </div>
-
-            {/* Run Prediction Button Container */}
             <div className="flex items-end pt-4 lg:pt-0">
               <button
                 onClick={handleSubmit}
                 disabled={loading || !selectedDate || !startTime}
-                className="w-full h-12 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/30 hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-12 px-8 py-4 bg-gradient-to-br from-cyan-500 to-blue-900 hover:from-cyan-600 hover:to-blue-950 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -516,7 +503,7 @@ const futureTimestamp = new Date(
                 ) : (
                   <>
                     <TrendingUp className="w-5 h-5" />
-                    Run AI Prediction
+                    AI Prediction
                   </>
                 )}
               </button>
