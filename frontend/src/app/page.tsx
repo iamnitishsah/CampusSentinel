@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "./context/authContext";
 import Landing from "./pages/landing/page";
 
+
 const FullPageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-950">
     <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
@@ -31,6 +32,7 @@ export default function Home() {
     return(
       <>
       <Landing />
+      
       </>
     ) 
   }

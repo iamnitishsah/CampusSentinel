@@ -82,7 +82,6 @@ function Dashboard() {
   const [alertsSidebarOpen, setAlertsSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [alertsCount, setAlertsCount] = useState(0);
-  const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search, 500);
@@ -122,30 +121,29 @@ function Dashboard() {
     }
   }, []);
 
- const fetchAlerts = useCallback(async () => {
-  try {
-    const token = localStorage.getItem("access");
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("access");
 
-    const res = await fetch("http://localhost:8000/api/alerts/", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
+      const res = await fetch("http://localhost:8000/api/alerts/", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      setAlerts(data.alerts);
-    } else {
-      console.error("Failed to fetch alerts:", res.statusText);
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data.alerts);
+      } else {
+        console.error("Failed to fetch alerts:", res.statusText);
+        setAlerts([]);
+      }
+    } catch (err) {
+      console.error("Error fetching alerts:", err);
       setAlerts([]);
     }
-  } catch (err) {
-    console.error("Error fetching alerts:", err);
-    setAlerts([]);
-  }
-}, []);
-
+  }, []);
 
   const fetchUserProfile = async () => {
     const token = localStorage.getItem("access");
@@ -178,6 +176,12 @@ function Dashboard() {
     }
   };
 
+  const router = useRouter();
+
+  const handleRedirect = () => {
+    // Navigate to the desired route
+    router.push("/pages/location");
+  };
   const handleLogout = async () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
@@ -252,11 +256,20 @@ function Dashboard() {
                 <h1 className="text-xl font-bold text-white tracking-tight">
                   Campus Sentinel
                 </h1>
+
                 <p className="text-xs text-slate-400 hidden sm:block">
                   Security Management System
                 </p>
+                <button
+                  onClick={handleRedirect}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-xl shadow-lg hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105"
+                  aria-label="Go to Locations Page"
+                >
+                  Go to location page
+                </button>
               </div>
             </div>
+
             <div className="hidden lg:flex items-center gap-4">
               <button
                 onClick={() => setAlertsSidebarOpen(!alertsSidebarOpen)}
