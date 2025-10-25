@@ -14,4 +14,5 @@ urlpatterns = [
     path("search/face/", views.FaceSearchAPIView.as_view(), name="face-search"),
     path("predict/", views.PredictionAPIView.as_view(), name="predict-location"),
     path("forecast/", views.OccupancyAPIView.as_view(), name="forecast-count"),
+    path("forecast-all/", views.OccupancyAllAPIView.as_view(), name="forecast-all-count"),
 ]

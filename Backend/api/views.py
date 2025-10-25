@@ -1,6 +1,7 @@
 import time
 import asyncio
 import pandas as pd
+import os
 from datetime import time as time_module
 from rest_framework import generics, status, viewsets
 from django.db.models import Q, Max, F, Window, OuterRef, Subquery
@@ -16,8 +17,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 from . import models
-from .occupancy_predictor import OccupancyPredictor
+from .occupancy_predictor import OccupancyPredictor  # Original for single view
+from .all_occupancy_predictor import AllLocationsOccupancyPredictor  # New for bulk view
 from .occupancy_explainer import get_occupancy_explanation
+from .ActionRecommendation import GeminiAlertRecommender
 
 SIMULATION_NOW = timezone.make_aware(datetime(2025, 9, 25, 23, 59, 59))
 
@@ -265,7 +268,21 @@ class AlertsListAPIView(APIView):
         all_alerts.extend(after_hours_alerts[:10])
 
         all_alerts.sort(key=lambda x: x['severity'], reverse=True)
-        return Response({"alerts": all_alerts, "count": len(all_alerts)})
+        alerts_data = {"alerts": all_alerts, "count": len(all_alerts)}
+
+        try:
+            if os.environ.get("GEMINI_API_KEY"):
+                recommender = GeminiAlertRecommender(model="gemini-2.0-flash")
+
+                alerts_data = recommender.generate_recommendations(alerts_data)
+            else:
+                print("GEMINI_API_KEY not set. Skipping LLM recommendations.")
+
+        except Exception as e:
+            print(f"Error initializing or running GeminiAlertRecommender: {e}")
+
+        return Response(alerts_data)
+
 
 class TimelineDetailAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -288,7 +305,7 @@ class TimelineDetailAPIView(APIView):
             end_time = timezone.make_aware(datetime.combine(target_date, time_module.max))
         except ValueError:
             return Response({"error": "Invalid date format. Please use YYYY-MM-DD."},
-                            status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_44_BAD_REQUEST)
 
         summary_task = get_summary_for_entity(entity_id, start_time, end_time)
 
@@ -407,6 +424,7 @@ class OccupancyAPIView(APIView):
                     "error": f"No historical occupancy data found for location: {location_id}"
                 }, status=status.HTTP_404_NOT_FOUND)
 
+            # This view continues to use the ORIGINAL OccupancyPredictor
             predictor = OccupancyPredictor()
             predicted_occupancy = predictor.train_and_predict(
                 historical_data_qs,
@@ -440,6 +458,67 @@ class OccupancyAPIView(APIView):
 
         except Exception as e:
             print(f"Error in OccupancyAPIView: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response({"error": f"An internal server error occurred: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# NEW VIEW FOR BATCH PREDICTIONS
+class OccupancyAllAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # 1. Get future_time from request
+        future_time_str = request.data.get('future_time')
+        if not future_time_str:
+            return Response({"error": "future_time is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Parse the ISO string from frontend
+            future_time_aware = datetime.fromisoformat(future_time_str.replace("Z", "+00:00"))
+        except ValueError:
+            return Response({"error": "Invalid future_time format. Use ISO string."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 2. Fetch ALL occupancy data once
+            all_data_qs = models.OccupancyData.objects.all().values('start_time', 'location_id', 'count')
+            if not all_data_qs.exists():
+                return Response({"error": "No occupancy data found in database."}, status=status.HTTP_404_NOT_FOUND)
+
+            df_all = pd.DataFrame(list(all_data_qs))
+
+            # 3. Get all locations from the capacity dictionary
+            all_locations = LOCATION_MAX_CAPACITY.keys()
+            results = []
+
+            # 4. Initialize the NEW predictor with all data
+            predictor = AllLocationsOccupancyPredictor(df_all)
+
+            # 5. Loop and predict for each location
+            for location_id in all_locations:
+                # 6. Predict for the specific location using its data
+                predicted_occupancy = predictor.predict_for_location(
+                    location_id,
+                    future_time_aware
+                )
+
+                # 7. Get its status
+                status_label = get_occupancy_status(location_id, predicted_occupancy)
+
+                # 8. Append the result
+                results.append({
+                    "location_name": location_id,
+                    "predicted_occupancy": predicted_occupancy,
+                    "status": status_label,
+                })
+
+            # 9. Return the full list of predictions
+            return Response(results, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Error in OccupancyAllAPIView: {e}")
             import traceback
             traceback.print_exc()
             return Response({"error": f"An internal server error occurred: {str(e)}"},
