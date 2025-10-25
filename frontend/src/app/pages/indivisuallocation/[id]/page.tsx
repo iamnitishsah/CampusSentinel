@@ -315,6 +315,7 @@ export default function IndividualLocationPage() {
       const fullStartTime = time.length === 5 ? `${time}:00` : time;
       const calculatedEndTime = calculateEndTime(fullStartTime, PREDICTION_INTERVAL_MINS);
 
+
 const dateTimeString = `${date}T${calculatedEndTime}`;
 
 const datee = new Date(dateTimeString);
@@ -328,6 +329,7 @@ const futureTimestamp = new Date(
     datee.getSeconds()
   )
 ).toISOString();
+
 
 
       const payload = {
