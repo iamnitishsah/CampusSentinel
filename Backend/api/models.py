@@ -186,3 +186,20 @@ class FaceEmbedding(models.Model):
 
     def __str__(self):
         return f"face_embedding:{self.face_id} ({self.profile})"
+
+class OccupancyData(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    location_id = models.CharField(max_length=108, db_index=True)
+    start_time = models.DateTimeField()
+    count = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = "occupancy_data"
+        indexes = [
+            models.Index(fields=["location_id", "start_time"]),
+        ]
+        unique_together = (("location_id", "start_time"),)
+        ordering = ["location_id", "start_time"]
+
+    def __str__(self):
+        return f"{self.location_id} @ {self.start_time}: {self.count}"

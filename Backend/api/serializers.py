@@ -104,3 +104,37 @@ class FaceSearchRequestSerializer(serializers.Serializer):
         min_length=512,
         max_length=512
     )
+
+
+class OccupancyDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OccupancyData
+        fields = ["location_id", "start_time", "count"]
+
+
+class OccupancyRequestSerializer(serializers.Serializer):
+    location_id = serializers.CharField(max_length=108)
+    future_time = serializers.DateTimeField()
+
+    def validate_location_id(self, value):
+        KNOWN_LOCATIONS = [
+            'Admin Lobby',
+            'Auditorium',
+            'Cafeteria',
+            'Faculty Office',
+            'Gym',
+            'Hostel',
+            'LAB',
+            'LAB_101',
+            'LAB_102',
+            'LAB_305',
+            'LAB_A1',
+            'LAB_A2',
+            'Library',
+            'Main Building',
+            'Seminar Room',
+            'WORKSHOP'
+        ]
+        if value not in KNOWN_LOCATIONS:
+            raise serializers.ValidationError(f"Unknown location: {value}")
+        return value
