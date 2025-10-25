@@ -168,7 +168,6 @@ function Dashboard() {
         };
         setUser(userInfo);
 
-        // ✅ Save user details to localStorage
         localStorage.setItem("user", JSON.stringify(userInfo));
       } else {
         setError("Unauthorized. Please log in.");

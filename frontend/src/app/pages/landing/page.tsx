@@ -113,25 +113,6 @@ export default function Landing() {
           <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
             Multi-modal entity tracking with AI-powered predictions, real-time monitoring, and explainable intelligence. Built for speed, accuracy, and privacy.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="#demo"
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 rounded-lg text-lg font-medium transition-all shadow-lg shadow-blue-500/25"
-            >
-              Schedule a Demo
-              <ChevronRight className="w-5 h-5" />
-            </a>
-            <a
-              href="/auth/login"
-              className="inline-flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white px-8 py-4 rounded-lg text-lg font-medium transition-all"
-            >
-              <Lock className="w-5 h-5" />
-              Login
-            </a>
-          </div>
-
-
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-20">
             <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
               <div className="text-3xl font-bold text-blue-400 mb-2">95%</div>
@@ -509,86 +490,6 @@ export default function Landing() {
       </section>
 
 
-      <section id="team" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/30">
-        <div className="max-w-5xl mx-auto text-center">
-          <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Built by Team ChaosCoded
-          </h3>
-          <p className="text-lg text-slate-400 mb-8">
-            National Institute of Technology, Rourkela
-          </p>
-          
-          <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-700/30 rounded-xl p-8 max-w-2xl mx-auto">
-            <p className="text-slate-300 mb-6">
-              A team of passionate engineers and researchers dedicated to making campuses safer through innovative AI technology.
-            </p>
-            <div className="flex justify-center gap-4">
-              <a href="#" className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700 p-3 rounded-lg transition-all">
-                <Github className="w-6 h-6 text-slate-300" />
-              </a>
-              <a href="#" className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700 p-3 rounded-lg transition-all">
-                <Linkedin className="w-6 h-6 text-slate-300" />
-              </a>
-              <a href="mailto:team@campussentinel.com" className="bg-slate-800/50 hover:bg-slate-800 border border-slate-700 p-3 rounded-lg transition-all">
-                <Mail className="w-6 h-6 text-slate-300" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-      <section id="demo" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-2xl p-8 sm:p-12 text-center">
-            <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Ready to Transform Campus Security?
-            </h3>
-            <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
-              Join leading institutions leveraging AI for smarter, safer campuses. Schedule a demo or get early access today.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-              <a
-                href="/auth/signup"
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 rounded-lg text-lg font-medium transition-all shadow-lg shadow-blue-500/25"
-              >
-                Schedule a Demo
-                <ChevronRight className="w-5 h-5" />
-              </a>
-              <a
-                href="/auth/signup"
-                className="inline-flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white px-8 py-4 rounded-lg text-lg font-medium transition-all"
-              >
-                Get Early Access
-              </a>
-            </div>
-
-    
-            <div className="max-w-md mx-auto">
-              <p className="text-sm text-slate-400 mb-4">Stay updated with the latest features</p>
-              <form onSubmit={handleNewsletterSubmit} className="flex gap-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white placeholder:text-slate-500"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all whitespace-nowrap"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
- 
       <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-900/50 border-t border-slate-800/50">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
@@ -629,9 +530,7 @@ export default function Landing() {
                 <li>
                   <a href="#use-cases" className="text-slate-400 hover:text-white transition-colors">Use Cases</a>
                 </li>
-                <li>
-                  <a href="#demo" className="text-slate-400 hover:text-white transition-colors">Request Demo</a>
-                </li>
+
               </ul>
             </div>
 
