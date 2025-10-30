@@ -3,6 +3,10 @@
 
 ### By ChaosCoded
 
+<p align="center">
+  <img src="https://github.com/iamnitishsah/CampusSentinel/blob/main/Ethos%20Certificate.jpg?raw=true" alt="IIT-ISM Certificate" width="600"/>
+</p>
+
 This repository contains the complete source code for **CampusSentinel**, an integrated system for intelligent campus security and monitoring with AI-powered predictions, occupancy forecasting, and real-time alerts.
 
 For detailed setup and configuration, please refer to the README files inside each module.
