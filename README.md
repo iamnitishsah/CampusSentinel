@@ -56,15 +56,15 @@ Core logic, API services, and database management using **Django REST Framework 
 📁 **Documentation**: `/Backend/README.md`
 
 > **Environment Variables:** `.env` file required for backend configuration:  
-> [Download Here](https://drive.google.com/file/d/1rVQgnPy75QGwboxkSQoKbdOUMnIemr_X/view?usp=sharing)
+
 
 **Required Environment Variables:**
 ```env
-# Database (Supabase)
+# Database
 DB_NAME=your_database_name
 DB_USER=your_database_user
 DB_PASSWORD=your_database_password
-DB_HOST=your_supabase_host.supabase.co
+DB_HOST=your_db_host
 DB_PORT=5432
 
 # Google Gemini API
@@ -325,21 +325,11 @@ For detailed setup, API documentation, and configuration:
 
 ---
 
-## 📄 License
 
-[Your License Here]
 
 ## 👥 Contributors
 
 **ChaosCoded**
-
----
-
-## 💡 Support
-
-For issues, questions, or contributions:
-- GitHub Issues: [repository-url]/issues
-- Documentation: Check module-specific README files
 
 ---
 
