@@ -3,7 +3,7 @@
 
 ### By ChaosCoded
 <p align="center">
-  <img src="https://github.com/iamnitishsah/CampusSentinel/blob/main/Sanchita%20Certificate.jpeg?raw=true" alt="IIT-ISM Certificate" width="600"/>
+  <img src="https://github.com/Sanchita-nitr/CampusSentinel/blob/main/Sanchita%20Cirtificate.jpeg" alt="IIT-ISM Certificate" width="600"/>
 </p>
 <p align="center">
   <img src="https://github.com/iamnitishsah/CampusSentinel/blob/main/Ethos%20Certificate.jpg?raw=true" alt="IIT-ISM Certificate" width="600"/>
