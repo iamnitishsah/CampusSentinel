@@ -368,7 +368,7 @@ export default function EntityPage() {
                                                 cy="50%"
                                                 outerRadius={90}
                                                 labelLine={false}
-                                                label={({ name}: CustomLabelProps) => `${name}`}
+                                                label={({ name }) => name}
                                             >
                                                 {activityData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={entry.color} />
