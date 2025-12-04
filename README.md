@@ -4,7 +4,7 @@
 ### By ChaosCoded
 
 <p align="center">
-  <img src="https://github.com/Sanchita-nitr/CampusSentinel/blob/main/NitishCertificate.jpg" alt="Ethos Certificate" width="600"/>
+  <img src="https://github.com/iamnitishsah/CampusSentinel/blob/main/NitishCertificate.jpg?raw=true" alt="Ethos Certificate" width="600"/>
 </p>
 <p align="center">
   <img src="https://github.com/iamnitishsah/CampusSentinel/blob/main/SanchitaCertificate.jpeg?raw=true" alt="Ethos Certificate" width="600"/>
